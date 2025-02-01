@@ -1,6 +1,5 @@
 import express from 'express';
 import { getCoalMines, createCoalMine } from '../controllers/coalMineController.js';
-import CoalMine from '../models/CoalMine.js';
 const router = express.Router();
 
 // Get all coal mines
