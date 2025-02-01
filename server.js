@@ -46,16 +46,14 @@ app.use(morgan('dev'));
 // MongoDB connection
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.DB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
+    await mongoose.connect(process.env.DB_URI); // No need for deprecated options
     logger.info("Connected to MongoDB");
   } catch (err) {
     logger.error("MongoDB connection error:", err.message);
     process.exit(1); // Exit process if MongoDB connection fails
   }
 };
+
 
 // Initialize MongoDB connection
 connectDB();
