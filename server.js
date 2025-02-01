@@ -12,13 +12,13 @@ import session from 'express-session';
 import alertRoutes from './routes/alerts.js';
 import maintenanceRoutes from './routes/maintenance.js';
 import mineRoutes from './routes/mines.js';
-import safetyPlanRoutes from './models/SafetyPlan.js';
-import shiftLogRoutes from './models/ShiftLog.js';
+import safetyPlanRoutes from './routes/safetyPlans.js';
+import shiftLogRoutes from './routes/shiftLogs.js';
 import userRoutes from './routes/userRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import chatbotRoutes from './routes/chatbotRoutes.js';
 import coalMineRoutes from './routes/coalMineRoutes.js';
-import './config/passport.js'; // Ensure passport configuration is required here
+import "./config/passport.js";
 import locationRoutes from './routes/locationRoutes.js';
 import notficationRoutes from './routes/notificationRoutes.js';
 import Prodrouter from './routes/productivityRoutes.js';
@@ -60,10 +60,11 @@ connectDB();
 
 // Initialize session and passport
 app.use(session({
-  secret: 'your_secret_key',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true
 }));
+
 app.use(passport.initialize());
 app.use(passport.session());
 

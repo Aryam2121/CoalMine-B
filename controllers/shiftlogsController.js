@@ -1,4 +1,4 @@
-import e from 'express';
+import express from 'express';
 import ShiftLog from '../models/ShiftLog.js';
 
 // Get all shift logs

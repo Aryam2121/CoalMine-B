@@ -1,4 +1,4 @@
-import SafetyPlan from '../models/safetyPlanModel.js';
+import SafetyPlan from "../models/SafetyPlanModel.js";
 
 // Get all safety plans
 const getAllSafetyPlans = async (req, res) => {

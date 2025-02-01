@@ -1,30 +1,31 @@
-import nodemailer from "nodemailer";
-import otpGenerator from "otp-generator";
+import sgMail from '@sendgrid/mail';
+import otpGenerator from 'otp-generator';
+import User from '../models/User.js'; // assuming you're using Mongoose
+import dotenv from "dotenv";
+dotenv.config();
+// Set your SendGrid API key
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-// Set up a nodemailer transporter (use your SMTP details here)
-const transporter = nodemailer.createTransport({
-  service: "gmail", // Or any other email service
-  auth: {
-    user: "YOUR_EMAIL",
-    pass: "YOUR_EMAIL_PASSWORD",
-  },
-});
+// Function to generate OTP
+export const generateOtp = () => {
+  return otpGenerator.generate(6, { upperCase: false, specialChars: false, digits: true });
+};
 
-// Send OTP to email
-export const sendOtpEmail = (email, otp) => {
-  const mailOptions = {
-    from: "YOUR_EMAIL",
+// Send OTP email using SendGrid
+export const sendOtpEmail = async (email, otp) => {
+  const msg = {
     to: email,
-    subject: "Your OTP Code",
+    from: 'aryamangupta2121@gmail.com', // Replace with your email
+    subject: 'Your OTP Code',
     text: `Your OTP code is: ${otp}`,
   };
 
-  return transporter.sendMail(mailOptions);
-};
-
-// Generate OTP
-export const generateOtp = () => {
-  return otpGenerator.generate(6, { upperCase: false, specialChars: false, digits: true });
+  try {
+    await sgMail.send(msg);
+    console.log('OTP email sent');
+  } catch (error) {
+    console.error('Error sending OTP email:', error);
+  }
 };
 
 // Save OTP to user's document (for validation later)
@@ -33,3 +34,4 @@ export const saveOtpToUser = async (userId, otp) => {
   user.otp = otp;
   await user.save();
 };
+
