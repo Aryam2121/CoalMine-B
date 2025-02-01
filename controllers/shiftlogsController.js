@@ -99,4 +99,4 @@ const deleteShiftLog = async (req, res) => {
     res.status(500).json({ message: "Error deleting shift log", error: error.message });
   }
 };
-export default { getAllShiftLogs, getShiftLogById, createShiftLog, updateShiftLog, deleteShiftLog };
+export { getAllShiftLogs, getShiftLogById, createShiftLog, updateShiftLog, deleteShiftLog };

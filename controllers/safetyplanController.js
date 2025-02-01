@@ -96,4 +96,4 @@ const deleteSafetyPlan = async (req, res) => {
     res.status(500).json({ message: "Error deleting safety plan", error: error.message });
   }
 };
-export default { getAllSafetyPlans, getSafetyPlanById, createSafetyPlan, updateSafetyPlan, deleteSafetyPlan };
+export  { getAllSafetyPlans, getSafetyPlanById, createSafetyPlan, updateSafetyPlan, deleteSafetyPlan };

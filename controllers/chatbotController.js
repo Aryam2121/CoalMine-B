@@ -1,6 +1,6 @@
 import { getChatResponse } from '../models/chatbotModel.js';
 
-export const handleChatRequest = async (req, res) => {
+ const handleChatRequest = async (req, res) => {
   const { message, language } = req.body;
 
   if (!message) {
@@ -14,3 +14,4 @@ export const handleChatRequest = async (req, res) => {
     res.status(500).json({ error: 'Error processing chatbot request' });
   }
 };
+export {handleChatRequest};

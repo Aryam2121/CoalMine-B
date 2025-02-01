@@ -20,8 +20,9 @@ import chatbotRoutes from './routes/chatbotRoutes.js';
 import coalMineRoutes from './routes/coalMineRoutes.js';
 import './config/passport.js'; // Ensure passport configuration is required here
 import locationRoutes from './routes/locationRoutes.js';
-
+import notficationRoutes from './routes/notificationRoutes.js';
 import Prodrouter from './routes/productivityRoutes.js';
+import Resourceroutes from './routes/resourceRoutes.js';
 const app = express();
 
 // Set up logging
@@ -69,6 +70,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Routes
+app.use('/api/notifications',notficationRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api', maintenanceRoutes);
 app.use('/api', coalMineRoutes);
@@ -80,7 +82,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api', chatbotRoutes);
 app.use('/api', locationRoutes);
 app.use('/api/prod', Prodrouter);
-
+app.use('/api/resource', Resourceroutes);
 app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
@@ -92,7 +94,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: "Server error", error: err.message });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
 });
