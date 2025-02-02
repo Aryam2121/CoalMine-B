@@ -1,4 +1,4 @@
-import CoalMine from '../models/CoalMine.js';
+import CoalMine from '../models/coalMineModel.js';
 
 // Get all coal mines with optional pagination, filtering, and sorting
 const getCoalMines = async (req, res) => {
