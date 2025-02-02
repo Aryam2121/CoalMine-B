@@ -10,10 +10,10 @@ import {
 const router = express.Router();
 
 // Routes for shift logs
-router.get('/getAllshift', getAllShiftLogs);
+router.get('/getAllLogs', getAllShiftLogs);
 router.get('/getshift/:id', getShiftLogById);
-router.post('/addshift', createShiftLog);
-router.put('/updateshift/:id', updateShiftLog);
-router.delete('/deleteshift/:id', deleteShiftLog);
+router.post('/createLogs', createShiftLog);
+router.put('/updateLog/:id', updateShiftLog);
+router.delete('/deleteLog/:id', deleteShiftLog);
 
 export default router;
