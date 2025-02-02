@@ -20,26 +20,28 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: function() {
-        // Only require password if this is not a Google login
-        return !this.googleId;
+        return !this.googleId; // Ensure this works correctly
       },
       minlength: 6,
     },
+   
     googleId: {
       type: String,
-      unique: true,
+      unique: false,
       sparse: true,
-      default: undefined, // Ensures that 'null' is not explicitly stored
+      // null ko explicitly set karo agar Google ID nahi hai
     },
+    
     
     otp: {
       type: String, // OTP will be stored as a string
       default: null, // Initially, OTP will be null
     },
-    otpExpiration: {
-      type: Date, // Stores the OTP expiration time
-      default: null, // Initially, OTP expiration is null
-    },
+    otpExpiry: {
+      type: Date,
+      default: null,
+   },
+   
     role: {
       type: String,
       enum: ['worker', 'supervisor', 'admin'],
@@ -53,19 +55,17 @@ const userSchema = new mongoose.Schema(
 
 // Pre-save hook for password hashing
 userSchema.pre('save', async function(next) {
-  // If the password is being set, hash it
-  if (this.password && this.isModified('password')) {
-    try {
-      const hashedPassword = await bcrypt.hash(this.password, 10);
-      this.password = hashedPassword; // Replace plain password with hashed password
-      next();
-    } catch (error) {
-      next(error); // Pass error to the next middleware
-    }
-  } else {
+  if (!this.isModified('password') || this.googleId) {
+    return next(); // No need to hash if password is not modified or it's a Google login
+  }
+  try {
+    this.password = await bcrypt.hash(this.password, 10);
     next();
+  } catch (error) {
+    next(error);
   }
 });
+
 
 // Method to compare passwords (useful for login)
 userSchema.methods.comparePassword = async function(candidatePassword) {
