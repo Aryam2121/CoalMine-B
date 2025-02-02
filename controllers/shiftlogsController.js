@@ -4,7 +4,8 @@ import ShiftLog from '../models/ShiftLog.js';
 // Get all shift logs
 const getAllShiftLogs = async (req, res) => {
   try {
-    const shiftLogs = await ShiftLog.find().populate('workerId', 'name'); // Populate worker name from the Worker model
+    const shiftLogs = await ShiftLog.find().populate('workerId', 'name');
+    // Populate worker name from the Worker model
     if (shiftLogs.length === 0) {
       return res.status(404).json({ message: "No shift logs found" });
     }
@@ -16,18 +17,22 @@ const getAllShiftLogs = async (req, res) => {
 };
 
 // Get a single shift log by ID
+// Get a single shift log by ID
 const getShiftLogById = async (req, res) => {
   try {
     const shiftLog = await ShiftLog.findById(req.params.id).populate('workerId', 'name');
+
     if (!shiftLog) {
       return res.status(404).json({ message: "Shift log not found" });
     }
+
     res.status(200).json(shiftLog);
   } catch (error) {
-    console.error(error);  // Log error for debugging
+    console.error(error);
     res.status(500).json({ message: "Error fetching shift log", error: error.message });
   }
 };
+
 
 // Create a new shift log
 const createShiftLog = async (req, res) => {

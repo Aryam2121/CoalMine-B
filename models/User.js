@@ -28,8 +28,10 @@ const userSchema = new mongoose.Schema(
     googleId: {
       type: String,
       unique: true,
-      sparse: true, // Ensure uniqueness only for non-null values
+      sparse: true,
+      default: undefined, // Ensures that 'null' is not explicitly stored
     },
+    
     otp: {
       type: String, // OTP will be stored as a string
       default: null, // Initially, OTP will be null
@@ -40,8 +42,8 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['admin', 'user', 'moderator'],
-      default: 'user',
+      enum: ['worker', 'supervisor', 'admin'],
+      default: 'worker', // Default role is worker
     },
   },
   {

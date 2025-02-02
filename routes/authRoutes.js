@@ -23,10 +23,14 @@ async function verifyGoogleToken(token) {
 
 // 🟢 **Signup Route**
 router.post("/signup", async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, role } = req.body; // Include role
 
-  if (!name || !email || !password) {
-    return res.status(400).json({ message: "All fields are required" });
+  if (!name || !email || !password || !role) {
+    return res.status(400).json({ message: "All fields (name, email, password, role) are required" });
+  }
+
+  if (!["worker", "supervisor", "admin"].includes(role)) {
+    return res.status(400).json({ message: "Invalid role. Choose from 'worker', 'supervisor', or 'admin'" });
   }
 
   try {
@@ -36,7 +40,7 @@ router.post("/signup", async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ name, email, password: hashedPassword });
+    const newUser = new User({ name, email, password: hashedPassword, role }); // Assign role
 
     await newUser.save();
 
@@ -45,11 +49,12 @@ router.post("/signup", async (req, res) => {
     await sendOtpEmail(email, otp);
     await saveOtpToUser(newUser._id, otp);
 
-    res.status(201).json({ message: "User registered successfully. OTP sent to email." });
+    res.status(201).json({ message: "User registered successfully. OTP sent to email.", role: newUser.role });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
 });
+
 
 // 🟢 **Login Route**
 router.post("/login", async (req, res) => {
@@ -61,15 +66,23 @@ router.post("/login", async (req, res) => {
 
   try {
     const user = await User.findOne({ email });
+
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (otp) {
+      // ✅ Check OTP expiry
+      const now = new Date();
+      if (user.otpExpiry < now) return res.status(400).json({ message: "OTP has expired. Request a new one." });
+
       if (user.otp !== otp) return res.status(400).json({ message: "Invalid OTP" });
 
-      user.otp = null; // Clear OTP after use
+      // ✅ Clear OTP after successful login
+      user.otp = null;
+      user.otpExpiry = null;
       await user.save();
 
       const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET, { expiresIn: "1h" });
+
       return res.status(200).json({ message: "OTP login successful", token });
     }
 
@@ -77,14 +90,16 @@ router.post("/login", async (req, res) => {
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) return res.status(401).json({ message: "Invalid password" });
 
-      const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET, { expiresIn: "1h" });
-      return res.status(200).json({ message: "Password login successful", token });
+      const token = jwt.sign({ userId: user._id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: "1h" });
+
+      return res.status(200).json({ message: "Password login successful", token, role: user.role });
     }
 
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
 });
+
 
 // 🟢 **Send OTP Route**
 router.post("/send-otp", async (req, res) => {
@@ -95,7 +110,25 @@ router.post("/send-otp", async (req, res) => {
   }
 
   try {
+    const user = await User.findOne({ email });
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // ✅ Check if OTP is still valid
+    const now = new Date();
+    if (user.otp && user.otpExpiry > now) {
+      return res.status(200).json({ message: "OTP already sent. Please wait before requesting a new one." });
+    }
+
+    // ✅ Generate new OTP
     const otp = generateOtp();
+    const otpExpiry = new Date(now.getTime() + 5 * 60 * 1000); // ✅ OTP expires in 5 minutes
+
+    // ✅ Save OTP and expiry time to DB
+    user.otp = otp;
+    user.otpExpiry = otpExpiry;
+    await user.save();
+
     await sendOtpEmail(email, otp);
 
     res.status(200).json({ message: "OTP sent successfully!", otp });
@@ -136,7 +169,7 @@ router.post("/google", async (req, res) => {
     let user = await User.findOne({ email });
   
     if (!user) {
-      user = new User({ name, email, googleId });
+      user = new User({ name, email, googleId, role: "worker" }); // Default role for Google signups
       await user.save();
     } else if (!user.googleId) {
       user.googleId = googleId;
