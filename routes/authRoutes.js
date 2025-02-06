@@ -115,6 +115,7 @@ router.post("/send-otp", async (req, res) => {
 });
 
 // Verify OTP Route
+// Verify OTP Route
 router.post("/verify-otp", async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -126,11 +127,15 @@ router.post("/verify-otp", async (req, res) => {
     user.otpExpiry = null;
     await user.save();
 
-    res.status(200).json({ message: "OTP verified successfully" });
+    // Generate JWT token after OTP verification
+    const token = jwt.sign({ userId: user._id, email, role: user.role }, JWT_SECRET, { expiresIn: "1h" });
+
+    res.status(200).json({ message: "OTP verified successfully", token });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });
+
 
 // Google OAuth Route
 router.post("/google", async (req, res) => {
