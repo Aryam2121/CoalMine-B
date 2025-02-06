@@ -152,11 +152,12 @@ router.post("/google", async (req, res) => {
     
     if (user) {
       if (!user.googleId) {
-        return res.status(400).json({
-          message: "This email is already registered. Please use Google login."
-        });
+        // Instead of rejecting, allow linking of Google login
+        user.googleId = googleId;
+        await user.save();
       }
     }
+    
     
 
     if (!user) {
