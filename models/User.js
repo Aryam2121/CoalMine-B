@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 
 // User Schema
 const userSchema = new mongoose.Schema(
@@ -19,44 +20,38 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: function() {
-        return !this.googleId; // Ensure this works correctly
+      required: function () {
+        return !this.googleId; // Password required only if Google ID is absent
       },
       minlength: 6,
     },
-   
     googleId: {
       type: String,
-      unique: false,
       sparse: true,
-      // null ko explicitly set karo agar Google ID nahi hai
     },
-    
-    
     otp: {
-      type: String, // OTP will be stored as a string
-      default: null, // Initially, OTP will be null
+      type: String,
+      default: null,
     },
     otpExpiry: {
       type: Date,
       default: null,
-   },
-   
+    },
     role: {
       type: String,
       enum: ['worker', 'supervisor', 'admin'],
-      default: 'worker', // Default role is worker
+      default: 'worker',
     },
   },
   {
-    timestamps: true, // Adds createdAt and updatedAt fields automatically
+    timestamps: true,
   }
 );
 
 // Pre-save hook for password hashing
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password') || this.googleId) {
-    return next(); // No need to hash if password is not modified or it's a Google login
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password') || !this.password) {
+    return next();
   }
   try {
     this.password = await bcrypt.hash(this.password, 10);
@@ -66,15 +61,21 @@ userSchema.pre('save', async function(next) {
   }
 });
 
-
-// Method to compare passwords (useful for login)
-userSchema.methods.comparePassword = async function(candidatePassword) {
+// Method to compare passwords
+userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Method to validate OTP (you can add more complex logic here if needed)
-userSchema.methods.isOtpValid = function() {
-  return this.otpExpiration && this.otpExpiration > Date.now();
+// Securely set OTP
+userSchema.methods.setOtp = function (otp) {
+  this.otp = crypto.createHash('sha256').update(otp).digest('hex');
+  this.otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5-minute expiry
+};
+
+// Validate OTP
+userSchema.methods.validateOtp = function (enteredOtp) {
+  const hashedOtp = crypto.createHash('sha256').update(enteredOtp).digest('hex');
+  return this.otp === hashedOtp && this.otpExpiry > Date.now();
 };
 
 // Model
