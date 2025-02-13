@@ -23,6 +23,7 @@ import locationRoutes from './routes/locationRoutes.js';
 import notficationRoutes from './routes/notificationRoutes.js';
 import Prodrouter from './routes/productivityRoutes.js';
 import Resourceroutes from './routes/resourceRoutes.js';
+import AttendanceRoutes from "./routes/attendanceRoutes.js";
 const app = express();
 
 // Set up logging
@@ -82,6 +83,7 @@ app.use('/api', chatbotRoutes);
 app.use('/api', locationRoutes);
 app.use('/api/prod', Prodrouter);
 app.use('/api/resource', Resourceroutes);
+app.use('/api/attendance',AttendanceRoutes);
 app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
