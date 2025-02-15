@@ -8,4 +8,4 @@ router.post("/addAchieve",createAchievement);
 router.put("/:id", updateAchievement);
 router.delete("/:id", deleteAchievement);
 
-module.exports = router;
+export default router;
