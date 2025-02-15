@@ -8,4 +8,5 @@ const AuditLogSchema = new mongoose.Schema({
   details: { type: String, required: true },
 });
 
-export default mongoose.model('AuditLog', AuditLogSchema);
+const AuditLog = mongoose.model('AuditLog', AuditLogSchema);
+export default AuditLog;
