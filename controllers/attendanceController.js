@@ -1,34 +1,35 @@
 import Attendance from "../models/Attendance.js";
 import mongoose from "mongoose";
 import { body, validationResult } from "express-validator";
-
-// Get all workers
+// Get all workers (Only Workers)
 const getWorkers = async (req, res) => {
   try {
-    const workers = await Attendance.find();
+    const workers = await Attendance.find({ role: "Worker" }); // Sirf worker role wale fetch karein
     res.json(workers);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Add a new worker with validation
+// Add a new worker
 const addWorker = async (req, res) => {
   try {
-    // Validate request body
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const newWorker = new Attendance(req.body);
+    const newWorker = new Attendance({
+      ...req.body,
+      role: "Worker", // Worker role set karein
+    });
+
     await newWorker.save();
     res.status(201).json(newWorker);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 };
-
 // Update worker attendance status
 const updateAttendance = async (req, res) => {
   try {
