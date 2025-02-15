@@ -1,4 +1,4 @@
-import Achievement from "../models/Achievement";
+import Achievement from "../models/Achievement.js";
 
 const getAchievements = async (req, res) => {
   try {
