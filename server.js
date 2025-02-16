@@ -25,7 +25,7 @@ import Prodrouter from './routes/productivityRoutes.js';
 import Resourceroutes from './routes/resourceRoutes.js';
 import AttendanceRoutes from "./routes/attendanceRoutes.js";
 import AuditRoutes from "./routes/AuditRoutes.js";
-import AchievementRoutes from "./routes/AchievementRoutes.js;"
+import AchievementRoutes from "./routes/AchievementRoutes.js";
 const app = express();
 
 // Set up logging
