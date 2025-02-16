@@ -16,13 +16,13 @@ const getAchievements = async (req, res) => {
 // Create a new achievement
 const createAchievement = async (req, res) => {
   try {
-    if (!req.body.title || !req.body.description) {
-      return res.status(400).json({ success: false, error: "Title and description are required" });
+    if (!req.body.name || !req.body.description) {
+      return res.status(400).json({ success: false, error: "Name and description are required" });
     }
-    
+
     const newAchievement = new Achievement(req.body);
     await newAchievement.save();
-    
+
     res.status(201).json({
       success: true,
       message: "Achievement created successfully",
@@ -32,6 +32,7 @@ const createAchievement = async (req, res) => {
     res.status(500).json({ success: false, error: error.message || "Failed to create achievement" });
   }
 };
+
 
 // Update an achievement
 const updateAchievement = async (req, res) => {
