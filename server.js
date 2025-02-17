@@ -84,7 +84,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api', chatbotRoutes);
 app.use('/api', locationRoutes);
 app.use('/api/prod', Prodrouter);
-app.use('/api/resource', Resourceroutes);
+app.use('/api', Resourceroutes);
 app.use('/api',AttendanceRoutes);
 app.use('/api',AuditRoutes);
 app.use('/api',AchievementRoutes);

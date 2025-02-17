@@ -41,6 +41,9 @@ const updateResource = async (req, res) => {
       req.body,
       { new: true }
     );
+    if (!updatedResource) {
+      return res.status(404).json({ error: 'Resource not found' });
+    }
     res.json(updatedResource);
   } catch (err) {
     res.status(500).json({ error: err.message });
