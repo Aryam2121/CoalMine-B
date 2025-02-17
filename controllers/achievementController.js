@@ -35,10 +35,17 @@ const createAchievement = async (req, res) => {
 
 
 // Update an achievement
+import mongoose from "mongoose";
+
+// Update an achievement
 const updateAchievement = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, error: "Invalid achievement ID" });
+    }
+
     const achievement = await Achievement.findById(req.params.id);
-    
+
     if (!achievement) {
       return res.status(404).json({ success: false, error: "Achievement not found" });
     }
@@ -58,8 +65,12 @@ const updateAchievement = async (req, res) => {
 // Delete an achievement
 const deleteAchievement = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, error: "Invalid achievement ID" });
+    }
+
     const achievement = await Achievement.findById(req.params.id);
-    
+
     if (!achievement) {
       return res.status(404).json({ success: false, error: "Achievement not found" });
     }
