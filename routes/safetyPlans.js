@@ -12,8 +12,8 @@ const router = express.Router();
 // Routes for safety plans
 router.get('/getAllsafe', getAllSafetyPlans);
 router.get('/getsafe/:id', getSafetyPlanById);
-router.post('/addsafe', createSafetyPlan);
-router.put('/updatesafe/:id', updateSafetyPlan);
+router.post('/addsafe',upload.single("file"), createSafetyPlan);
+router.put('/updatesafe/:id',upload.single("file"), updateSafetyPlan);
 router.delete('/deletesafe/:id', deleteSafetyPlan);
 
 export default router;
