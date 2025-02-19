@@ -51,15 +51,15 @@ const createShiftLog = async (req, res) => {
       workerId,
       status: status || 'pending',
       notes,
-      file: file ? file.buffer.toString('base64') : null, // Convert file to base64
+      file: file ? file.buffer.toString('base64') : null, 
     });
 
     await shiftLog.save();
     res.status(201).json(shiftLog);
   } catch (error) {
-    res.status(500).json({ message: 'Error creating shift log', error: error.message });
+    res.status(500).json({ message: 'Error creating shift log', error: error.message});
   }
-});
+};
 
 // Update an existing shift log
 const updateShiftLog = async (req, res) => {
