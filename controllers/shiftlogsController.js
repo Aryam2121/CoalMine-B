@@ -41,23 +41,35 @@ const getShiftLogById = async (req, res) => {
 const createShiftLog = async (req, res) => {
   try {
     const { shiftDetails, shiftDate, shiftStartTime, shiftEndTime, workerId, status, notes } = req.body;
-    const file = req.file; // Binary file
+    const file = req.file; // Binary file (if uploaded)
 
+    // Validate workerId format
+    if (!mongoose.Types.ObjectId.isValid(workerId)) {
+      return res.status(400).json({ message: "Invalid workerId format" });
+    }
+
+    // Convert shiftDate to Date object
+    const parsedShiftDate = new Date(shiftDate);
+    if (isNaN(parsedShiftDate.getTime())) {
+      return res.status(400).json({ message: "Invalid shiftDate format" });
+    }
+
+    // Prepare ShiftLog object
     const shiftLog = new ShiftLog({
       shiftDetails,
-      shiftDate,
+      shiftDate: parsedShiftDate,
       shiftStartTime,
       shiftEndTime,
-      workerId,
-      status: status || 'pending',
+      workerId: new mongoose.Types.ObjectId(workerId),
+      status: status || "pending",
       notes,
-      file: file ? file.buffer.toString('base64') : null, 
+      file: file ? file.buffer : null, // Store raw buffer data (or use GridFS)
     });
 
     await shiftLog.save();
-    res.status(201).json(shiftLog);
+    res.status(201).json({ message: "Shift log created successfully", shiftLog });
   } catch (error) {
-    res.status(500).json({ message: 'Error creating shift log', error: error.message});
+    res.status(500).json({ message: "Error creating shift log", error: error.message });
   }
 };
 
