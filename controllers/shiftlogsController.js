@@ -1,5 +1,8 @@
 import express from 'express';
 import ShiftLog from '../models/ShiftLog.js';
+import multer from 'multer';
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 // Get all shift logs
 const getAllShiftLogs = async (req, res) => {
@@ -38,30 +41,25 @@ const getShiftLogById = async (req, res) => {
 const createShiftLog = async (req, res) => {
   try {
     const { shiftDetails, shiftDate, shiftStartTime, shiftEndTime, workerId, status, notes } = req.body;
+    const file = req.file; // Binary file
 
-    // Validate required fields
-    if (!shiftDetails || !shiftDate || !shiftStartTime || !shiftEndTime || !workerId) {
-      return res.status(400).json({ message: "Shift details, date, start time, end time, and worker ID are required" });
-    }
-
-    // Create a new shift log
     const shiftLog = new ShiftLog({
       shiftDetails,
       shiftDate,
       shiftStartTime,
       shiftEndTime,
       workerId,
-      status: status || 'pending', // Default status to 'pending'
+      status: status || 'pending',
       notes,
+      file: file ? file.buffer.toString('base64') : null, // Convert file to base64
     });
 
     await shiftLog.save();
     res.status(201).json(shiftLog);
   } catch (error) {
-    console.error(error);  // Log error for debugging
-    res.status(500).json({ message: "Error creating shift log", error: error.message });
+    res.status(500).json({ message: 'Error creating shift log', error: error.message });
   }
-};
+});
 
 // Update an existing shift log
 const updateShiftLog = async (req, res) => {
