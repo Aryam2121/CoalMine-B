@@ -4,7 +4,7 @@ import {
   getSafetyPlanById, 
   createSafetyPlan, 
   updateSafetyPlan, 
-  deleteSafetyPlan 
+  deleteSafetyPlan ,upload
 } from '../controllers/safetyplanController.js'; // Adjust the path if needed
 
 const router = express.Router();
