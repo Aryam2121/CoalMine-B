@@ -7,7 +7,7 @@ router.get('/getallMines', getCoalMines);
 
 // Add a new coal mine
 router.post('/createMines', createCoalMine);
-router.put('/updateMines',updateCoalMine);
-router.delete('/deleteMines',deleteCoalMine);
+router.put('/updateMine/:id',updateCoalMine);
+router.delete('/deleteMine/:id',deleteCoalMine);
 
 export default router;  
