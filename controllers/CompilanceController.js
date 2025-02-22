@@ -40,7 +40,11 @@ const createReport = async (req, res) => {
 // Update a report
 const updateReport = async (req, res) => {
     const { id } = req.params;
-    
+  
+    // Log the incoming data and the ID
+    console.log("Request body:", req.body);
+    console.log("Report ID:", id);
+  
     // Check if the ID is valid
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ error: "Invalid report ID" });
@@ -51,7 +55,8 @@ const updateReport = async (req, res) => {
       if (!report) return res.status(404).json({ error: "Report not found" });
       res.json(report);
     } catch (error) {
-      res.status(400).json({ error: error.message });
+      console.error("Error during update:", error);
+      res.status(500).json({ error: "Internal Server Error", details: error.message });
     }
   };
 
