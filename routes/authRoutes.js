@@ -47,7 +47,7 @@ router.post("/signup", async (req, res) => {
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: "All fields are required" });
     }
-    if (!["worker", "supervisor", "admin"].includes(role)) {
+    if (!["worker", "Inspector", "Super admin", "Mine admin", "Safety Manager", "Shift Incharge"].includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
     }
 
@@ -140,36 +140,35 @@ router.post("/verify-otp", async (req, res) => {
 // Google OAuth Route
 router.post("/google", async (req, res) => {
   try {
-    const { token } = req.body;
+    const { token, role } = req.body;
     const payload = await verifyGoogleToken(token);
     const { sub: googleId, name, email } = payload;
+
     if (!googleId || !email) {
       return res.status(400).send({ message: "Invalid Google ID or token." });
     }
 
-    // Check if the user exists with Google ID or email
     let user = await User.findOne({ email });
-    
+
     if (user) {
       if (!user.googleId) {
-        // Instead of rejecting, allow linking of Google login
         user.googleId = googleId;
         await user.save();
       }
-    }
-    
-    
+    } else {
+      // Validate role selection
+      const validRoles = ["worker", "Inspector", "Super admin", "Mine admin", "Safety Manager", "Shift Incharge"];
+      if (!role || !validRoles.includes(role)) {
+        return res.status(400).json({ message: "Invalid role selection" });
+      }
 
-    if (!user) {
-      // If no user found with this email, create a new one with Google ID
-      user = new User({ name, email, googleId, role: "worker" });
+      user = new User({ name, email, googleId, role });
       await user.save();
     }
 
-    // Generate JWT token for the user
-    const authToken = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
+    const authToken = jwt.sign({ userId: user._id, email, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
 
-    res.status(200).json({ message: "User logged in successfully", token: authToken });
+    res.status(200).json({ message: "User logged in successfully", token: authToken, role: user.role });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
