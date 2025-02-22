@@ -39,14 +39,21 @@ const createReport = async (req, res) => {
 
 // Update a report
 const updateReport = async (req, res) => {
-  try {
-    const report = await CompilanceReport.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!report) return res.status(404).json({ error: "Report not found" });
-    res.json(report);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
+    const { id } = req.params;
+    
+    // Check if the ID is valid
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid report ID" });
+    }
+  
+    try {
+      const report = await CompilanceReport.findByIdAndUpdate(id, req.body, { new: true });
+      if (!report) return res.status(404).json({ error: "Report not found" });
+      res.json(report);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  };
 
 // Delete a report
 const deleteReport = async (req, res) => {
