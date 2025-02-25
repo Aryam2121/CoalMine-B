@@ -1,19 +1,18 @@
-import express from 'express';
-import { 
-  getAllSafetyPlans, 
-  getSafetyPlanById, 
-  createSafetyPlan, 
-  updateSafetyPlan, 
-  deleteSafetyPlan ,upload
-} from '../controllers/safetyplanController.js'; // Adjust the path if needed
+import express from "express";
+import {
+  createSafetyPlan,
+  deleteSafetyPlan,
+  getAllSafetyPlans,
+  getSafetyPlanById,
+  updateSafetyPlan,upload
+} from "../controllers/safetyplanController.js";
 
 const router = express.Router();
 
-// Routes for safety plans
-router.get('/getAllsafe', getAllSafetyPlans);
-router.get('/getsafe/:id', getSafetyPlanById);
-router.post("/addsafe", upload.single("file"), createSafetyPlan);
-router.put('/updatesafe/:id',upload.single("file"), updateSafetyPlan);
-router.delete('/deletesafe/:id', deleteSafetyPlan);
+router.get("/getAllSafety", getAllSafetyPlans);
+router.get("/:id", getSafetyPlanById);
+router.post("/createSafety", upload.single("file"), createSafetyPlan);
+router.put("/:id", upload.single("file"), updateSafetyPlan);
+router.delete("/:id", deleteSafetyPlan);
 
 export default router;

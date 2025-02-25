@@ -139,11 +139,4 @@ const deleteSafetyPlan = async (req, res) => {
   }
 };
 
-export { 
-  getAllSafetyPlans, 
-  getSafetyPlanById, 
-  createSafetyPlan, 
-  updateSafetyPlan, 
-  deleteSafetyPlan, 
-  upload // Export the upload middleware to use in routes
-};
+export { getAllSafetyPlans, getSafetyPlanById, createSafetyPlan, updateSafetyPlan, deleteSafetyPlan, upload };
