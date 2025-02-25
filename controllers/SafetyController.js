@@ -142,4 +142,4 @@ const deleteSafetyReport = async (req, res) => {
   }
 };
 
-export { getAllSafetyReports, getSafetyReportById, createSafetyReport, approveSafetyReport, deleteSafetyReport };
+export { getAllSafetyReports, getSafetyReportById, createSafetyReport, approveSafetyReport, deleteSafetyReport,upload };
