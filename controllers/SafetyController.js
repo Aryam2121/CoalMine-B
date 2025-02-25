@@ -1,11 +1,14 @@
 import SafetyReport from "../models/SafetyReport.js";
 import multer from "multer";
+import fs from "fs";
 import path from "path";
 
 // Multer storage configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/reports/");
+    const uploadPath = "uploads/reports/";
+    fs.mkdirSync(uploadPath, { recursive: true }); // Ensure directory exists
+    cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname}`);
@@ -26,9 +29,11 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ storage, fileFilter }).array("attachments", 5); // Allows up to 5 files
 
 // Get all safety reports
-  const getAllSafetyReports = async (req, res) => {
+const getAllSafetyReports = async (req, res) => {
   try {
-    const reports = await SafetyReport.find().populate("createdBy approvedBy", "name email").lean();
+    const reports = await SafetyReport.find()
+      .populate("createdBy approvedBy", "name email")
+      .lean();
     if (!reports.length) {
       return res.status(404).json({ message: "No safety reports found" });
     }
@@ -40,9 +45,11 @@ const upload = multer({ storage, fileFilter }).array("attachments", 5); // Allow
 };
 
 // Get a single report by ID
-  const getSafetyReportById = async (req, res) => {
+const getSafetyReportById = async (req, res) => {
   try {
-    const report = await SafetyReport.findById(req.params.id).populate("createdBy approvedBy", "name email").lean();
+    const report = await SafetyReport.findById(req.params.id)
+      .populate("createdBy approvedBy", "name email")
+      .lean();
     if (!report) {
       return res.status(404).json({ message: "Report not found" });
     }
@@ -54,9 +61,12 @@ const upload = multer({ storage, fileFilter }).array("attachments", 5); // Allow
 };
 
 // Create a new safety report
-  const createSafetyReport = async (req, res) => {
+const createSafetyReport = async (req, res) => {
   upload(req, res, async (err) => {
-    if (err) return res.status(400).json({ message: err.message });
+    if (err) {
+      console.error("File upload error:", err.message);
+      return res.status(400).json({ message: err.message });
+    }
 
     try {
       const { reportTitle, description, riskLevel, incidentDate, location, createdBy } = req.body;
@@ -71,14 +81,14 @@ const upload = multer({ storage, fileFilter }).array("attachments", 5); // Allow
         reportTitle,
         description,
         riskLevel,
-        incidentDate,
+        incidentDate: new Date(incidentDate), // Ensure correct date format
         location,
         createdBy,
         attachments,
       });
 
       await report.save();
-      res.status(201).json(report);
+      res.status(201).json({ message: "Report created successfully", report });
     } catch (error) {
       console.error("Error creating report:", error);
       res.status(500).json({ message: "Error creating report", error: error.message });
@@ -87,7 +97,7 @@ const upload = multer({ storage, fileFilter }).array("attachments", 5); // Allow
 };
 
 // Approve a safety report
-  const approveSafetyReport = async (req, res) => {
+const approveSafetyReport = async (req, res) => {
   try {
     const { approvedBy } = req.body;
     const report = await SafetyReport.findByIdAndUpdate(
@@ -107,18 +117,29 @@ const upload = multer({ storage, fileFilter }).array("attachments", 5); // Allow
   }
 };
 
-// Delete a safety report
-  const deleteSafetyReport = async (req, res) => {
+// Delete a safety report (with file deletion)
+const deleteSafetyReport = async (req, res) => {
   try {
-    const report = await SafetyReport.findByIdAndDelete(req.params.id);
+    const report = await SafetyReport.findById(req.params.id);
     if (!report) {
       return res.status(404).json({ message: "Report not found" });
     }
 
+    // Delete associated files
+    if (report.attachments && report.attachments.length > 0) {
+      report.attachments.forEach((filePath) => {
+        fs.unlink(filePath, (err) => {
+          if (err) console.error("Error deleting file:", filePath, err);
+        });
+      });
+    }
+
+    await SafetyReport.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: "Report deleted successfully" });
   } catch (error) {
     console.error("Error deleting report:", error);
     res.status(500).json({ message: "Error deleting report", error: error.message });
   }
 };
-export { getAllSafetyReports, getSafetyReportById, createSafetyReport, approveSafetyReport, deleteSafetyReport ,upload};
+
+export { getAllSafetyReports, getSafetyReportById, createSafetyReport, approveSafetyReport, deleteSafetyReport };
