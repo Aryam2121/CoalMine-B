@@ -1,4 +1,4 @@
-import Location from "../models/locationModel.js";
+import  Location from "../models/locationModel.js";
 
 // Fetch all locations
 const getAllLocations = async (req, res) => {
@@ -16,24 +16,25 @@ const getAllLocations = async (req, res) => {
 const createLocation = async (req, res) => {
   const { name, coordinates } = req.body;
 
-  if (!name || !coordinates || !coordinates.type || !coordinates.coordinates) {
-    return res.status(400).json({ message: "Missing required fields" });
+  if (!name || !Array.isArray(coordinates) || coordinates.length !== 2) {
+    return res.status(400).json({ message: "Invalid coordinates format" });
   }
 
   try {
     const newLocation = new Location({
       name,
       coordinates: {
-        type: "Point", // Geospatial type
-        coordinates: coordinates.coordinates, // GeoJSON coordinates [longitude, latitude]
+        type: "Point",
+        coordinates, // [longitude, latitude] directly
       },
     });
 
     const savedLocation = await newLocation.save();
-    res.status(201).json(savedLocation); // Send the saved location back as response
+    res.status(201).json(savedLocation);
   } catch (error) {
     console.error("Error creating location:", error);
-    res.status(500).json({ message: "Error creating location" }); // Send an error response
+    res.status(500).json({ message: "Error creating location" });
   }
 };
+
 export { getAllLocations, createLocation };

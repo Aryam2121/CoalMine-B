@@ -2,7 +2,7 @@ import express from 'express';
 const router = express.Router();
 import mineController from '../controllers/mineController.js';
 
-router.get('/', mineController.getAllMines);
-router.post('/', mineController.createMine);
+router.get('/getAllMines', mineController.getAllMines);
+router.post('/createMines', mineController.createMine);
 
 export default router;
