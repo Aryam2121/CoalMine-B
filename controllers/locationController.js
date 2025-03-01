@@ -16,7 +16,16 @@ const getAllLocations = async (req, res) => {
 const createLocation = async (req, res) => {
   const { name, coordinates } = req.body;
 
-  if (!name || !Array.isArray(coordinates) || coordinates.length !== 2) {
+  // Validate input
+  if (
+    !name || 
+    !coordinates || 
+    coordinates.type !== "Point" || 
+    !Array.isArray(coordinates.coordinates) ||
+    coordinates.coordinates.length !== 2 ||
+    isNaN(coordinates.coordinates[0]) || // Longitude
+    isNaN(coordinates.coordinates[1])    // Latitude
+  ) {
     return res.status(400).json({ message: "Invalid coordinates format" });
   }
 
@@ -25,7 +34,7 @@ const createLocation = async (req, res) => {
       name,
       coordinates: {
         type: "Point",
-        coordinates, // [longitude, latitude] directly
+        coordinates: coordinates.coordinates,
       },
     });
 
