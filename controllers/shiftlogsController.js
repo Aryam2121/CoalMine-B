@@ -8,17 +8,19 @@ const upload = multer({ storage });
 // Get all shift logs
 const getAllShiftLogs = async (req, res) => {
   try {
-    const shiftLogs = await ShiftLog.find().populate('workerId', 'name');
-    // Populate worker name from the Worker model
+    const shiftLogs = await ShiftLog.find().populate('workerId', 'name').lean(); 
+    
     if (shiftLogs.length === 0) {
       return res.status(404).json({ message: "No shift logs found" });
     }
+
     res.status(200).json(shiftLogs);
   } catch (error) {
-    console.error(error);  // Log error for debugging
+    console.error(error);
     res.status(500).json({ message: "Error fetching shift logs", error: error.message });
   }
 };
+
 
 // Get a single shift log by ID
 // Get a single shift log by ID
@@ -79,15 +81,19 @@ const updateShiftLog = async (req, res) => {
   try {
     const { shiftDetails, shiftDate, shiftStartTime, shiftEndTime, status, notes } = req.body;
 
-    // Validate required fields
     if (!shiftDetails || !shiftDate || !shiftStartTime || !shiftEndTime) {
       return res.status(400).json({ message: "Shift details, date, start time, and end time are required" });
     }
 
+    const parsedShiftDate = new Date(shiftDate);
+    if (isNaN(parsedShiftDate.getTime())) {
+      return res.status(400).json({ message: "Invalid shiftDate format" });
+    }
+
     const shiftLog = await ShiftLog.findByIdAndUpdate(
       req.params.id,
-      { shiftDetails, shiftDate, shiftStartTime, shiftEndTime, status, notes },
-      { new: true }  // Return the updated document
+      { shiftDetails, shiftDate: parsedShiftDate, shiftStartTime, shiftEndTime, status, notes },
+      { new: true }
     );
 
     if (!shiftLog) {
@@ -96,10 +102,11 @@ const updateShiftLog = async (req, res) => {
 
     res.status(200).json(shiftLog);
   } catch (error) {
-    console.error(error);  // Log error for debugging
+    console.error(error);
     res.status(500).json({ message: "Error updating shift log", error: error.message });
   }
 };
+
 
 // Delete a shift log by ID
 const deleteShiftLog = async (req, res) => {
