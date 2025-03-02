@@ -1,16 +1,21 @@
 import SafetyPlan from "../models/SafetyPlanModel.js";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 
-// Multer Storage Configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/safety-plans/"); // Save files in 'uploads/safety-plans' directory
+    const dir = "uploads/safety-plans/";
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true }); 
+    }
+    cb(null, dir);
   },
   filename: (req, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname}`);
   },
 });
+
 
 // File Filter to allow only PDFs and images
 const fileFilter = (req, file, cb) => {
@@ -65,7 +70,8 @@ const createSafetyPlan = async (req, res) => {
     }
 
     // Handle file upload
-    const uploadedFile = req.file ? req.file.path : null;
+    const uploadedFile = req.file ? `/uploads/safety-plans/${req.file.filename}` : null;
+
 
     const safetyPlan = new SafetyPlan({
       hazardDetails,
