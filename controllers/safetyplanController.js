@@ -7,7 +7,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = "uploads/safety-plans/";
     if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true }); 
+      fs.mkdirSync(dir, { recursive: true });
     }
     cb(null, dir);
   },
@@ -30,7 +30,12 @@ const fileFilter = (req, file, cb) => {
 };
 
 // Upload Middleware
-const upload = multer({ storage, fileFilter });
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB file limit
+});
+
 
 // Get all safety plans
 const getAllSafetyPlans = async (req, res) => {
@@ -63,15 +68,16 @@ const getSafetyPlanById = async (req, res) => {
 // Create a new safety plan with file upload
 const createSafetyPlan = async (req, res) => {
   try {
+    console.log("Request received:", req.body);
+    console.log("Uploaded file:", req.file);
+
     const { hazardDetails, riskLevel, mitigationMeasures, status, createdBy } = req.body;
 
     if (!hazardDetails || !riskLevel || !mitigationMeasures || !createdBy) {
       return res.status(400).json({ message: "All required fields must be provided" });
     }
 
-    // Handle file upload
     const uploadedFile = req.file ? `/uploads/safety-plans/${req.file.filename}` : null;
-
 
     const safetyPlan = new SafetyPlan({
       hazardDetails,
@@ -79,7 +85,7 @@ const createSafetyPlan = async (req, res) => {
       mitigationMeasures,
       status: status || "draft",
       createdBy,
-      file: uploadedFile, // Store file path
+      file: uploadedFile,
     });
 
     await safetyPlan.save();
@@ -89,6 +95,7 @@ const createSafetyPlan = async (req, res) => {
     res.status(500).json({ message: "Error creating safety plan", error: error.message });
   }
 };
+
 
 // Update an existing safety plan with file upload
 const updateSafetyPlan = async (req, res) => {
