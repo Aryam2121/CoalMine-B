@@ -32,12 +32,17 @@ const getProductivityData = async (req, res) => {
 // Add a New Productivity Record
 const addProductivityRecord = async (req, res) => {
   try {
-    console.log(req.body); // Log the incoming request body
+    console.log(req.body); // Debugging ke liye
 
-    const { date, value, description } = req.body;
+    let { date, value, description } = req.body;
 
-    if (!date || value === undefined) {
+    if (!date || !value) {
       return res.status(400).json({ message: 'Date and Value are required' });
+    }
+
+    // Ensure `value` is stored as an array of numbers
+    if (typeof value === 'string') {
+      value = value.split(',').map(num => parseFloat(num.trim())); // Convert to array of numbers
     }
 
     const newRecord = new Productivity({ date, value, description });
@@ -48,6 +53,7 @@ const addProductivityRecord = async (req, res) => {
     res.status(500).json({ message: 'Error adding record', error: error.message });
   }
 };
+
 
 
 // Update a Productivity Record
