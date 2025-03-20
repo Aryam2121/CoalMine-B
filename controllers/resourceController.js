@@ -3,12 +3,16 @@ import Resource from "../models/Resource.js";
 // Get all resources
 const getResources = async (req, res) => {
   try {
+    console.log("Fetching resources...");
     const resources = await Resource.find();
+    console.log("Fetched resources:", resources);
     res.json(resources);
   } catch (err) {
+    console.error("Error fetching resources:", err);
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // Create a new resource
 const createResource = async (req, res) => {
