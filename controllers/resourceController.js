@@ -1,10 +1,10 @@
 import Resource from "../models/Resource.js";
 
 // Get all resources
-const getResources = async (req, res) => {
+const getAllResources = async (req, res) => {
   try {
     console.log("Fetching resources...");
-    const resources = await Resource.find();
+    const resources = await Resource.find({});;
     console.log("Fetched resources:", resources);
     res.json(resources);
   } catch (err) {
@@ -63,4 +63,4 @@ const deleteResource = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-export  { getResources, createResource, updateResource, deleteResource };
+export  { getAllResources, createResource, updateResource, deleteResource };
