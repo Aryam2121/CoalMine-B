@@ -3,7 +3,7 @@ import { getResources, createResource, updateResource, deleteResource } from '..
 
 const router = express.Router();
 
-router.get('/getRes', getResources);
+router.get('/getAllRes', getResources);
 router.post('/addRes', createResource);
 router.put('/:id', updateResource);
 router.delete('/:id', deleteResource);
