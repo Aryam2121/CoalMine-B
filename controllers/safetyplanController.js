@@ -54,17 +54,24 @@ const getAllSafetyPlans = async (req, res) => {
 // Get a single safety plan by ID
 const getSafetyPlanById = async (req, res) => {
   try {
-    const safetyPlan = await SafetyPlan.findById(req.params.id).lean();
+    const { id } = req.params;
+
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid safety plan ID" });
+    }
+
+    const safetyPlan = await SafetyPlan.findById(id).lean();
     if (!safetyPlan) {
       return res.status(404).json({ message: "Safety plan not found" });
     }
+
     res.status(200).json(safetyPlan);
   } catch (error) {
     console.error("Error fetching safety plan:", error);
     res.status(500).json({ message: "Error fetching safety plan", error: error.message });
   }
 };
-
 // Create a new safety plan with file upload
 const createSafetyPlan = async (req, res) => {
   try {
