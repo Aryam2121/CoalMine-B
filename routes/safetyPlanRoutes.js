@@ -3,7 +3,7 @@ import {
   createSafetyPlan,
   deleteSafetyPlan,
   getAllSafetyPlans,
-  getSafetyPlanById,
+
   updateSafetyPlan,
   upload
 } from "../controllers/safetyplanController.js";
