@@ -159,4 +159,4 @@ const deleteSafetyPlan = async (req, res) => {
   }
 };
 
-export { getAllSafetyPlans, getSafetyPlanById, createSafetyPlan, updateSafetyPlan, deleteSafetyPlan, upload };
+export { getAllSafetyPlans,  createSafetyPlan, updateSafetyPlan, deleteSafetyPlan, upload };
