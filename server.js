@@ -12,7 +12,7 @@ import session from 'express-session';
 import alertRoutes from './routes/alerts.js';
 import maintenanceRoutes from './routes/maintenance.js';
 import mineRoutes from './routes/mines.js';
-// import safetyPlanRoutes from './routes/safetyPlanRoutes.js';
+import safetyPlanRoutes from './routes/safetyPlanRoutes.js';
 import shiftLogRoutes from './routes/shiftLogs.js';
 import userRoutes from './routes/userRoutes.js';
 import authRoutes from './routes/authRoutes.js';
