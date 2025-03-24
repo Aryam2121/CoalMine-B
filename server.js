@@ -79,7 +79,7 @@ app.use('/api/alerts', alertRoutes);
 app.use('/api', maintenanceRoutes);
 app.use('/api', coalMineRoutes);
 app.use('/api/mines', mineRoutes);
-// app.use('/api', safetyPlanRoutes);
+app.use('/api', safetyPlanRoutes);
 app.use('/api', shiftLogRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
