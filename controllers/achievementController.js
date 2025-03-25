@@ -34,22 +34,24 @@ const createAchievement = async (req, res) => {
 const updateAchievement = async (req, res) => {
   try {
     const { id } = req.params;
+    const { progressKey, progress } = req.body;
 
-    console.log("Incoming Achievement ID:", id); // Log the ID
+    console.log("📌 Incoming request to update achievement:", { id, progressKey, progress });
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ success: false, error: "Invalid achievement ID" });
     }
 
-    const existingAchievement = await Achievement.findById(id);
-    console.log("Found Achievement:", existingAchievement); // Log if it exists
-
-    if (!existingAchievement) {
-      return res.status(404).json({ success: false, error: "Achievement not found in DB" });
+    const achievement = await Achievement.findById(id);
+    if (!achievement) {
+      console.log("🚨 Achievement Not Found in DB");
+      return res.status(404).json({ success: false, error: "Achievement not found" });
     }
 
+    // Dynamically update only the progress field
     const updatedAchievement = await Achievement.findByIdAndUpdate(
       id,
-      req.body,
+      { [progressKey]: progress },
       { new: true, runValidators: true }
     );
 
@@ -57,14 +59,13 @@ const updateAchievement = async (req, res) => {
       return res.status(404).json({ success: false, error: "Achievement not found after update" });
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Achievement updated successfully",
-      data: updatedAchievement,
-    });
+    console.log("✅ Achievement Updated Successfully:", updatedAchievement);
+
+    res.status(200).json({ success: true, data: updatedAchievement });
+
   } catch (error) {
-    console.error("Update Error:", error);
-    res.status(500).json({ success: false, error: error.message || "Failed to update achievement" });
+    console.error("🚨 Update Achievement Error:", error);
+    res.status(500).json({ success: false, error: "Failed to update achievement" });
   }
 };
 
