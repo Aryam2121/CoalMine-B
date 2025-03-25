@@ -34,13 +34,27 @@ const createAchievement = async (req, res) => {
 const updateAchievement = async (req, res) => {
   try {
     const { id } = req.params;
+
+    console.log("Incoming Achievement ID:", id); // Log the ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ success: false, error: "Invalid achievement ID" });
     }
 
-    const updatedAchievement = await Achievement.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+    const existingAchievement = await Achievement.findById(id);
+    console.log("Found Achievement:", existingAchievement); // Log if it exists
+
+    if (!existingAchievement) {
+      return res.status(404).json({ success: false, error: "Achievement not found in DB" });
+    }
+
+    const updatedAchievement = await Achievement.findByIdAndUpdate(
+      id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+
     if (!updatedAchievement) {
-      return res.status(404).json({ success: false, error: "Achievement not found" });
+      return res.status(404).json({ success: false, error: "Achievement not found after update" });
     }
 
     res.status(200).json({
@@ -49,9 +63,11 @@ const updateAchievement = async (req, res) => {
       data: updatedAchievement,
     });
   } catch (error) {
+    console.error("Update Error:", error);
     res.status(500).json({ success: false, error: error.message || "Failed to update achievement" });
   }
 };
+
 
 // Delete an achievement
 const deleteAchievement = async (req, res) => {
