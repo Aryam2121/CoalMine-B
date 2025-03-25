@@ -1,13 +1,11 @@
+import mongoose from "mongoose";
 import Achievement from "../models/Achievement.js";
 
 // Get all achievements
 const getAchievements = async (req, res) => {
   try {
     const achievements = await Achievement.find();
-    res.status(200).json({
-      success: true,
-      data: achievements,
-    });
+    res.status(200).json({ success: true, data: achievements });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message || "Server Error" });
   }
@@ -16,13 +14,12 @@ const getAchievements = async (req, res) => {
 // Create a new achievement
 const createAchievement = async (req, res) => {
   try {
-    if (!req.body.name || !req.body.description) {
+    const { name, description } = req.body;
+    if (!name || !description) {
       return res.status(400).json({ success: false, error: "Name and description are required" });
     }
 
-    const newAchievement = new Achievement(req.body);
-    await newAchievement.save();
-
+    const newAchievement = await Achievement.create({ name, description });
     res.status(201).json({
       success: true,
       message: "Achievement created successfully",
@@ -33,24 +30,18 @@ const createAchievement = async (req, res) => {
   }
 };
 
-
-// Update an achievement
-import mongoose from "mongoose";
-
 // Update an achievement
 const updateAchievement = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ success: false, error: "Invalid achievement ID" });
     }
 
-    const achievement = await Achievement.findById(req.params.id);
-
-    if (!achievement) {
+    const updatedAchievement = await Achievement.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+    if (!updatedAchievement) {
       return res.status(404).json({ success: false, error: "Achievement not found" });
     }
-
-    const updatedAchievement = await Achievement.findByIdAndUpdate(req.params.id, req.body, { new: true });
 
     res.status(200).json({
       success: true,
@@ -65,26 +56,20 @@ const updateAchievement = async (req, res) => {
 // Delete an achievement
 const deleteAchievement = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ success: false, error: "Invalid achievement ID" });
     }
 
-    const achievement = await Achievement.findById(req.params.id);
-
+    const achievement = await Achievement.findByIdAndDelete(id);
     if (!achievement) {
       return res.status(404).json({ success: false, error: "Achievement not found" });
     }
 
-    await Achievement.findByIdAndDelete(req.params.id);
-
-    res.status(200).json({
-      success: true,
-      message: "Achievement deleted successfully",
-    });
+    res.status(200).json({ success: true, message: "Achievement deleted successfully" });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message || "Failed to delete achievement" });
   }
 };
 
 export { getAchievements, createAchievement, updateAchievement, deleteAchievement };
-
