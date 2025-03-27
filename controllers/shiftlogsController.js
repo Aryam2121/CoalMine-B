@@ -2,14 +2,15 @@ import express from 'express';
 import ShiftLog from '../models/ShiftLog.js';
 import multer from 'multer';
 import mongoose from 'mongoose';
+
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 // Get all shift logs
 const getAllShiftLogs = async (req, res) => {
   try {
-    const shiftLogs = await ShiftLog.find().populate('workerId', 'name').lean(); 
-    
+    const shiftLogs = await ShiftLog.find().lean(); 
+
     if (shiftLogs.length === 0) {
       return res.status(404).json({ message: "No shift logs found" });
     }
@@ -21,12 +22,10 @@ const getAllShiftLogs = async (req, res) => {
   }
 };
 
-
-// Get a single shift log by ID
 // Get a single shift log by ID
 const getShiftLogById = async (req, res) => {
   try {
-    const shiftLog = await ShiftLog.findById(req.params.id).populate('workerId', 'name');
+    const shiftLog = await ShiftLog.findById(req.params.id);
 
     if (!shiftLog) {
       return res.status(404).json({ message: "Shift log not found" });
@@ -39,17 +38,11 @@ const getShiftLogById = async (req, res) => {
   }
 };
 
-
 // Create a new shift log
 const createShiftLog = async (req, res) => {
   try {
-    const { shiftDetails, shiftDate, shiftStartTime, shiftEndTime, workerId, status, notes } = req.body;
+    const { shiftDetails, shiftDate, shiftStartTime, shiftEndTime, status, notes } = req.body;
     const file = req.file; // Binary file (if uploaded)
-
-    // Validate workerId format
-    if (!mongoose.Types.ObjectId.isValid(workerId)) {
-      return res.status(400).json({ message: "Invalid workerId format" });
-    }
 
     // Convert shiftDate to Date object
     const parsedShiftDate = new Date(shiftDate);
@@ -63,7 +56,6 @@ const createShiftLog = async (req, res) => {
       shiftDate: parsedShiftDate,
       shiftStartTime,
       shiftEndTime,
-      workerId: new mongoose.Types.ObjectId(workerId),
       status: status || "pending",
       notes,
       file: file ? file.buffer : null, // Store raw buffer data (or use GridFS)
@@ -107,7 +99,6 @@ const updateShiftLog = async (req, res) => {
   }
 };
 
-
 // Delete a shift log by ID
 const deleteShiftLog = async (req, res) => {
   try {
@@ -122,4 +113,5 @@ const deleteShiftLog = async (req, res) => {
     res.status(500).json({ message: "Error deleting shift log", error: error.message });
   }
 };
+
 export { getAllShiftLogs, getShiftLogById, createShiftLog, updateShiftLog, deleteShiftLog };

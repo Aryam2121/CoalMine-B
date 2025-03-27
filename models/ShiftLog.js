@@ -20,11 +20,6 @@ const ShiftLogSchema = new mongoose.Schema(
       type: String, // Time format could be 'HH:mm'
       required: [true, 'Shift end time is required'], 
     },
-    workerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User', 
-      required: [true, 'Worker ID is required'], 
-    },
     status: {
       type: String,
       enum: ['pending', 'completed', 'in-progress'],
@@ -40,9 +35,7 @@ const ShiftLogSchema = new mongoose.Schema(
   }
 );
 
-// Index on shiftDate and workerId for better performance when querying
-ShiftLogSchema.index({ shiftDate: 1, workerId: 1 });
+// Index on shiftDate for better query performance
+ShiftLogSchema.index({ shiftDate: 1 });
 
-// Create and export the ShiftLog model
-const ShiftLog = mongoose.model('ShiftLog', ShiftLogSchema);
-export default ShiftLog;
+// Create and export
