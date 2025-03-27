@@ -37,5 +37,6 @@ const ShiftLogSchema = new mongoose.Schema(
 
 // Index on shiftDate for better query performance
 ShiftLogSchema.index({ shiftDate: 1 });
-
-// Create and export
+// Create and export the ShiftLog model
+const ShiftLog = mongoose.model('ShiftLog', ShiftLogSchema);
+export default ShiftLog;
