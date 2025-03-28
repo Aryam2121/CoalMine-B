@@ -44,24 +44,15 @@ const createShiftLog = async (req, res) => {
     const { shiftDetails, shiftDate, shiftStartTime, shiftEndTime, status, notes } = req.body;
     const file = req.file; // Binary file (if uploaded)
 
-    // Convert shiftDate to Date object
-     // Ensure shiftDate is properly formatted
-     let parsedShiftDate;
-     if (typeof shiftDate === "string") {
-       parsedShiftDate = new Date(shiftDate + "T00:00:00.000Z"); // Force UTC format
-     } else {
-       parsedShiftDate = new Date(shiftDate);
-     }
- 
-     if (isNaN(parsedShiftDate.getTime())) {
-       return res.status(400).json({ message: "Invalid shiftDate format" });
-     }
- 
+    // Ensure shiftDate is a valid string
+    if (typeof shiftDate !== "string" || !shiftDate.trim()) {
+      return res.status(400).json({ message: "Invalid shiftDate format" });
+    }
 
     // Prepare ShiftLog object
     const shiftLog = new ShiftLog({
       shiftDetails,
-      shiftDate: parsedShiftDate,
+      shiftDate, // Store shiftDate as a string
       shiftStartTime,
       shiftEndTime,
       status: status || "pending",
@@ -75,6 +66,7 @@ const createShiftLog = async (req, res) => {
     res.status(500).json({ message: "Error creating shift log", error: error.message });
   }
 };
+
 
 // Update an existing shift log
 const updateShiftLog = async (req, res) => {
