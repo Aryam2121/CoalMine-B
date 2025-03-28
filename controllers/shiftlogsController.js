@@ -45,10 +45,13 @@ const createShiftLog = async (req, res) => {
     const file = req.file; // Binary file (if uploaded)
 
     // Convert shiftDate to Date object
-    const parsedShiftDate = new Date(shiftDate);
-    if (isNaN(parsedShiftDate.getTime())) {
-      return res.status(400).json({ message: "Invalid shiftDate format" });
-    }
+     // Convert shiftDate to Date object
+     const parsedShiftDate = new Date(shiftDate);
+     console.log("Parsed shiftDate:", parsedShiftDate); // Debug parsed date
+ 
+     if (isNaN(parsedShiftDate.getTime())) {
+       return res.status(400).json({ message: "Invalid shiftDate format" });
+     }
 
     // Prepare ShiftLog object
     const shiftLog = new ShiftLog({
