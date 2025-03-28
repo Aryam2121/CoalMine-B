@@ -45,9 +45,9 @@ const createShiftLog = async (req, res) => {
     const file = req.file; // Binary file (if uploaded)
 
     // Ensure shiftDate is a valid string
-    if (typeof shiftDate !== "string" || !shiftDate.trim()) {
-      return res.status(400).json({ message: "Invalid shiftDate format" });
-    }
+    // if (typeof shiftDate !== "string" || !shiftDate.trim()) {
+    //   return res.status(400).json({ message: "Invalid shiftDate format" });
+    // }
 
     // Prepare ShiftLog object
     const shiftLog = new ShiftLog({
