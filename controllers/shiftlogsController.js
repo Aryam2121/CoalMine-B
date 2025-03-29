@@ -175,7 +175,16 @@ const createShiftLog = async (req, res) => {
 
     let fileUrl = null;
     if (req.file) {
-      const uploadedFile = await cloudinary.uploader.upload(req.file.path, { resource_type: 'auto' });
+      const uploadedFile = await cloudinary.uploader.upload_stream(
+        { resource_type: "auto" },
+        (error, result) => {
+          if (error) {
+            console.error("Cloudinary Upload Error:", error);
+            return res.status(500).json({ message: "File upload failed", error: error.message });
+          }
+          fileUrl = result.secure_url;
+        }
+      ).end(req.file.buffer);
       fileUrl = uploadedFile.secure_url;
     }
 
