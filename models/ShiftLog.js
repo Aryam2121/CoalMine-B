@@ -8,10 +8,10 @@ const ShiftLogSchema = new mongoose.Schema(
       required: [true, 'Shift details are required'], 
       minlength: [10, 'Shift details must be at least 10 characters long'], 
     },
-    shiftDate: {
-      type: String, // Store as a string in 'YYYY-MM-DD' format
-      required: [true, 'Shift date is required'],
-    },
+    // shiftDate: {
+    //   type: String, // Store as a string in 'YYYY-MM-DD' format
+    //   required: [true, 'Shift date is required'],
+    // },
     shiftStartTime: {
       type: String, // Time format could be 'HH:mm'
       required: [true, 'Shift start time is required'], 
