@@ -40,4 +40,60 @@ const createMaintenance = async (req, res) => {
     res.status(500).json({ message: "Error creating maintenance task", error: error.message });
   }
 };
-export default { getAllMaintenance, createMaintenance };
+const getMaintenanceById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const maintenanceTask = await Maintenance.findById(id);
+
+    if (!maintenanceTask) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    res.status(200).json(maintenanceTask);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error fetching task", error: error.message });
+  }
+};
+// Delete a maintenance task by ID
+const deleteMaintenance = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deletedTask = await Maintenance.findByIdAndDelete(id);
+
+    if (!deletedTask) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    res.status(200).json({ message: "Task deleted successfully", deletedTask });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error deleting task", error: error.message });
+  }
+};
+const updateMaintenance = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { task, date, status, description, priority } = req.body;
+
+    // Check if task exists
+    const existingTask = await Maintenance.findById(id);
+    if (!existingTask) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    // Update task fields
+    existingTask.task = task || existingTask.task;
+    existingTask.date = date || existingTask.date;
+    existingTask.status = status || existingTask.status;
+    existingTask.description = description || existingTask.description;
+    existingTask.priority = priority || existingTask.priority;
+
+    const updatedTask = await existingTask.save();
+    res.status(200).json({ message: "Task updated successfully", updatedTask });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error updating task", error: error.message });
+  }
+};
+export default { getAllMaintenance, createMaintenance , getMaintenanceById, deleteMaintenance,updateMaintenance };
