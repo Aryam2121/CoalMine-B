@@ -57,4 +57,8 @@ const deleteUser = async (req, res) => {
     res.status(500).json({ error: 'Failed to delete user' });
   }
 };
-export  default { getAllUsers, getUserById, createUser, updateUser, deleteUser };
+ const getMyProfile = async (req, res) => {
+  res.json(req.user);
+};
+
+export  default { getAllUsers, getUserById, createUser, updateUser, deleteUser ,getMyProfile };
