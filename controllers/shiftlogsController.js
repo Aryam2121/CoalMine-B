@@ -239,4 +239,4 @@ const deleteShiftLog = async (req, res) => {
   }
 };
 
-export default { getAllShiftLogs, getShiftLogById, createShiftLog, updateShiftLog, deleteShiftLog };
+export  { getAllShiftLogs, getShiftLogById, createShiftLog, updateShiftLog, deleteShiftLog };
