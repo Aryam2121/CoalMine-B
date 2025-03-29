@@ -120,6 +120,7 @@ import express from 'express';
 import ShiftLog from '../models/ShiftLog.js';
 import multer from 'multer';
 import mongoose from 'mongoose';
+import cloudinary from '../config/cloudinary.js';
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -127,13 +128,17 @@ const upload = multer({ storage });
 // Get all shift logs
 const getAllShiftLogs = async (req, res) => {
   try {
-    const shiftLogs = await ShiftLog.find().lean(); 
+    const { page = 1, limit = 10 } = req.query;
+    const shiftLogs = await ShiftLog.find()
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit))
+      .lean();
 
-    if (shiftLogs.length === 0) {
+    if (!shiftLogs.length) {
       return res.status(404).json({ message: "No shift logs found" });
     }
 
-    res.status(200).json(shiftLogs);
+    res.status(200).json({ shiftLogs, page, limit });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error fetching shift logs", error: error.message });
@@ -163,11 +168,15 @@ const createShiftLog = async (req, res) => {
     console.log("Received File:", req.file);
 
     const { shiftDetails, shiftStartTime, shiftEndTime, status, notes } = req.body;
-    const file = req.file;
 
-    // Check if required fields exist
     if (!shiftDetails || !shiftStartTime || !shiftEndTime) {
       return res.status(400).json({ message: "All required fields must be filled" });
+    }
+
+    let fileUrl = null;
+    if (req.file) {
+      const uploadedFile = await cloudinary.uploader.upload(req.file.path, { resource_type: 'auto' });
+      fileUrl = uploadedFile.secure_url;
     }
 
     const shiftLog = new ShiftLog({
@@ -176,7 +185,7 @@ const createShiftLog = async (req, res) => {
       shiftEndTime,
       status: status || "pending",
       notes,
-      file: file ? file.buffer : null,
+      fileUrl, // Store Cloudinary URL instead of buffer
     });
 
     await shiftLog.save();
@@ -186,6 +195,7 @@ const createShiftLog = async (req, res) => {
     res.status(500).json({ message: "Error creating shift log", error: error.message });
   }
 };
+
 
 
 // Update an existing shift log
@@ -229,4 +239,4 @@ const deleteShiftLog = async (req, res) => {
   }
 };
 
-export { getAllShiftLogs, getShiftLogById, createShiftLog, updateShiftLog, deleteShiftLog };
+export default { getAllShiftLogs, getShiftLogById, createShiftLog, updateShiftLog, deleteShiftLog };

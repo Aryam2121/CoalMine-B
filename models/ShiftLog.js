@@ -5,16 +5,16 @@ const ShiftLogSchema = new mongoose.Schema(
   {
     shiftDetails: {
       type: String,
-      required: false, // ✅ Fix: Just use `false` without an array
+      required: false, 
       minlength: [10, 'Shift details must be at least 10 characters long'],
     },
     shiftStartTime: {
       type: String, 
-      required: false, // ✅ Fix: Just `false`
+      required: false, 
     },
     shiftEndTime: {
       type: String, 
-      required: false, // ✅ Fix: Just `false`
+      required: false, 
     },
     status: {
       type: String,
@@ -23,11 +23,15 @@ const ShiftLogSchema = new mongoose.Schema(
     },
     notes: {
       type: String,
-      required: false, // ✅ Fix: Just `false`
+      required: false, 
+    },
+    fileUrl: { 
+      type: String, // ✅ Corrected: Placed inside the schema
+      required: false, 
     },
   },
   {
-    timestamps: false, // Automatically adds createdAt and updatedAt fields
+    timestamps: true, // ✅ Enables automatic createdAt & updatedAt fields
   }
 );
 
