@@ -159,25 +159,34 @@ const getShiftLogById = async (req, res) => {
 // Create a new shift log
 const createShiftLog = async (req, res) => {
   try {
-    const { shiftDetails, shiftStartTime, shiftEndTime, status, notes } = req.body;
-    const file = req.file; // Binary file (if uploaded)
+    console.log("Received Payload:", req.body);
+    console.log("Received File:", req.file);
 
-    // Prepare ShiftLog object
+    const { shiftDetails, shiftStartTime, shiftEndTime, status, notes } = req.body;
+    const file = req.file;
+
+    // Check if required fields exist
+    if (!shiftDetails || !shiftStartTime || !shiftEndTime) {
+      return res.status(400).json({ message: "All required fields must be filled" });
+    }
+
     const shiftLog = new ShiftLog({
       shiftDetails,
       shiftStartTime,
       shiftEndTime,
       status: status || "pending",
       notes,
-      file: file ? file.buffer : null, // Store raw buffer data (or use GridFS)
+      file: file ? file.buffer : null,
     });
 
     await shiftLog.save();
     res.status(201).json({ message: "Shift log created successfully", shiftLog });
   } catch (error) {
+    console.error("Error Creating Shift Log:", error);
     res.status(500).json({ message: "Error creating shift log", error: error.message });
   }
 };
+
 
 // Update an existing shift log
 const updateShiftLog = async (req, res) => {
