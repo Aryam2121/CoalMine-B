@@ -5,29 +5,25 @@ const ShiftLogSchema = new mongoose.Schema(
   {
     shiftDetails: {
       type: String,
-      required: [false, 'Shift details are required'], 
-      minlength: [10, 'Shift details must be at least 10 characters long'], 
+      required: false, // ✅ Fix: Just use `false` without an array
+      minlength: [10, 'Shift details must be at least 10 characters long'],
     },
-    // shiftDate: {
-    //   type: String, // Store as a string in 'YYYY-MM-DD' format
-    //   required: [true, 'Shift date is required'],
-    // },
     shiftStartTime: {
-      type: String, // Time format could be 'HH:mm'
-      required: [false, 'Shift start time is required'], 
+      type: String, 
+      required: false, // ✅ Fix: Just `false`
     },
     shiftEndTime: {
-      type: String, // Time format could be 'HH:mm'
-      required: [false, 'Shift end time is required'], 
+      type: String, 
+      required: false, // ✅ Fix: Just `false`
     },
     status: {
       type: String,
       enum: ['pending', 'completed', 'in-progress'],
-      default: 'pending', 
+      default: 'pending',
     },
     notes: {
       type: String,
-      required: false, // Optional field for any additional notes on the shift
+      required: false, // ✅ Fix: Just `false`
     },
   },
   {
@@ -35,8 +31,6 @@ const ShiftLogSchema = new mongoose.Schema(
   }
 );
 
-// Index on shiftDate for better query performance
-ShiftLogSchema.index({ shiftDate: 1 });
 // Create and export the ShiftLog model
 const ShiftLog = mongoose.model('ShiftLog', ShiftLogSchema);
 export default ShiftLog;
