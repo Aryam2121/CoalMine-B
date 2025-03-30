@@ -57,9 +57,9 @@ const deleteUser = async (req, res) => {
     res.status(500).json({ error: 'Failed to delete user' });
   }
 };
-//  const getMyProfile = async (req, res) => {
-//   res.json(req.user);
-// };
+ const getMyProfile = async (req, res) => {
+  res.json(req.user);
+};
 // const getAllWorkers = async (req, res) => {
 //   try {
 //     const workers = await User.find({ role: "worker" }); // Filter workers only
