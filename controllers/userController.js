@@ -60,13 +60,26 @@ const deleteUser = async (req, res) => {
  const getMyProfile = async (req, res) => {
   res.json(req.user);
 };
-// const getAllWorkers = async (req, res) => {
-//   try {
-//     const workers = await User.find({ role: "worker" }); // Filter workers only
-//     res.status(200).json(workers);
-//   } catch (error) {
-//     res.status(500).json({ error: 'Failed to fetch workers' });
-//   }
-// };
+const getAllUsersByRole = async (req, res) => {
+  try {
+    const { role } = req.query; // Get role from query parameters
 
-export  default { getAllUsers, getUserById, createUser, updateUser, deleteUser ,getMyProfile };
+    // Define allowed roles
+    const allowedRoles = ["worker", "Inspector", "Safety Manager", "Shift Incharge"];
+
+    // Validate role input
+    if (role && !allowedRoles.includes(role)) {
+      return res.status(400).json({ error: "Invalid role" });
+    }
+
+    // Fetch users based on role (if provided) or fetch all users
+    const users = role ? await User.find({ role }) : await User.find();
+
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+};
+
+
+export  default { getAllUsers, getUserById, createUser, updateUser, deleteUser ,getMyProfile,getAllUsersByRole };
