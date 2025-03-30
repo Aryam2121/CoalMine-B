@@ -30,12 +30,12 @@ const SafetyReportSchema = new mongoose.Schema(
       default: "Pending",
     },
     createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: String,
       ref: "User",
       required: true,
     },
     approvedBy: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: String,
       ref: "User",
       default: null,
     },
