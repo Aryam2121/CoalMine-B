@@ -69,6 +69,8 @@ const createSafetyReport = async (req, res) => {
     }
 
     try {
+      console.log("Received Request:", req.body, req.files);
+
       const { reportTitle, description, riskLevel, incidentDate, location, createdBy } = req.body;
 
       if (!reportTitle || !description || !riskLevel || !incidentDate || !location || !createdBy) {
