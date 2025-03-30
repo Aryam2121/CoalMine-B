@@ -11,6 +11,7 @@ router.get("/me", protect, userController.getMyProfile);
 
 // Protected Routes (Login Required)
 router.get("/getAllusers", protect, userController.getAllUsers); // Get all users
+router.get("/getAllWorkers", protect, userController.getAllWorkers); // Get all workers
 router.put("/:id", protect, userController.updateUser); // Update profile
 router.delete("/:id", protect, isAdmin, userController.deleteUser); // Delete (Only Admin)
 

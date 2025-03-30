@@ -60,5 +60,13 @@ const deleteUser = async (req, res) => {
  const getMyProfile = async (req, res) => {
   res.json(req.user);
 };
+const getAllWorkers = async (req, res) => {
+  try {
+    const workers = await User.find({ role: "worker" }); // Filter workers only
+    res.status(200).json(workers);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch workers' });
+  }
+};
 
-export  default { getAllUsers, getUserById, createUser, updateUser, deleteUser ,getMyProfile };
+export  default { getAllUsers, getUserById, createUser, updateUser, deleteUser ,getMyProfile,getAllWorkers };
