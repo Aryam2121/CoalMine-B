@@ -10,7 +10,7 @@ router.get("users/me/:id", userController.getUserById); // Get User By ID (Publi
 router.get("/me", protect, userController.getMyProfile);
 
 // Protected Routes (Login Required)
-router.get("/", protect, userController.getAllUsers); // Get all users
+router.get("/getAllusers", protect, userController.getAllUsers); // Get all users
 router.put("/:id", protect, userController.updateUser); // Update profile
 router.delete("/:id", protect, isAdmin, userController.deleteUser); // Delete (Only Admin)
 
