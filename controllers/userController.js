@@ -57,16 +57,16 @@ const deleteUser = async (req, res) => {
     res.status(500).json({ error: 'Failed to delete user' });
   }
 };
- const getMyProfile = async (req, res) => {
-  res.json(req.user);
-};
-const getAllWorkers = async (req, res) => {
-  try {
-    const workers = await User.find({ role: "worker" }); // Filter workers only
-    res.status(200).json(workers);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch workers' });
-  }
-};
+//  const getMyProfile = async (req, res) => {
+//   res.json(req.user);
+// };
+// const getAllWorkers = async (req, res) => {
+//   try {
+//     const workers = await User.find({ role: "worker" }); // Filter workers only
+//     res.status(200).json(workers);
+//   } catch (error) {
+//     res.status(500).json({ error: 'Failed to fetch workers' });
+//   }
+// };
 
-export  default { getAllUsers, getUserById, createUser, updateUser, deleteUser ,getMyProfile,getAllWorkers };
+export  default { getAllUsers, getUserById, createUser, updateUser, deleteUser ,getMyProfile };
