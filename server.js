@@ -28,6 +28,7 @@ import AuditRoutes from "./routes/AuditRoutes.js";
 import AchievementRoutes from "./routes/AchievementRoutes.js";
 import CompilanceRoutes from "./routes/CompilanceRoutes.js";
 import SafetyReportRoutes from "./routes/SafetReportRoutes.js";
+import SafetyCheckRoutes from './routes/safetyCheckRoutes.js';
 const app = express();
 
 // Set up logging
@@ -92,6 +93,7 @@ app.use('/api',AuditRoutes);
 app.use('/api',AchievementRoutes);
 app.use('/api',CompilanceRoutes);
 app.use('/api',SafetyReportRoutes);
+app.use('/api', SafetyCheckRoutes);
 app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
