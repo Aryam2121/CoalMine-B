@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 
 const SafetyCheckSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   tasks: [
     {
       taskName: { type: String, required: true },
