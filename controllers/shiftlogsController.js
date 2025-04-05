@@ -145,21 +145,7 @@ const getAllShiftLogs = async (req, res) => {
   }
 };
 
-// Get a single shift log by ID
-const getShiftLogById = async (req, res) => {
-  try {
-    const shiftLog = await ShiftLog.findById(req.params.id);
 
-    if (!shiftLog) {
-      return res.status(404).json({ message: "Shift log not found" });
-    }
-
-    res.status(200).json(shiftLog);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error fetching shift log", error: error.message });
-  }
-};
 
 // Create a new shift log
 const createShiftLog = async (req, res) => {
@@ -172,21 +158,10 @@ const createShiftLog = async (req, res) => {
     if (!shiftDetails || !shiftStartTime || !shiftEndTime) {
       return res.status(400).json({ message: "All required fields must be filled" });
     }
-
-    let fileUrl = null;
-    if (req.file) {
-      const uploadedFile = await cloudinary.uploader.upload_stream(
-        { resource_type: "auto" },
-        (error, result) => {
-          if (error) {
-            console.error("Cloudinary Upload Error:", error);
-            return res.status(500).json({ message: "File upload failed", error: error.message });
-          }
-          fileUrl = result.secure_url;
-        }
-      ).end(req.file.buffer);
-      fileUrl = uploadedFile.secure_url;
+    if (!req.file || !req.file.path) {
+      return res.status(400).json({ message: "File upload failed" });
     }
+    const imageUrl = req.file.path; // ✅ This will now be a Cloudinary URL
 
     const shiftLog = new ShiftLog({
       shiftDetails,
@@ -194,7 +169,7 @@ const createShiftLog = async (req, res) => {
       shiftEndTime,
       status: status || "pending",
       notes,
-      fileUrl, // Store Cloudinary URL instead of buffer
+      file: imageUrl,// Store Cloudinary URL instead of buffer
     });
 
     await shiftLog.save();
@@ -248,4 +223,4 @@ const deleteShiftLog = async (req, res) => {
   }
 };
 
-export  { getAllShiftLogs, getShiftLogById, createShiftLog, updateShiftLog, deleteShiftLog };
+export  { getAllShiftLogs,  createShiftLog, updateShiftLog, deleteShiftLog };

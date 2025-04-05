@@ -25,9 +25,9 @@ const ShiftLogSchema = new mongoose.Schema(
       type: String,
       required: false, 
     },
-    fileUrl: { 
+    file: { 
       type: String, // ✅ Corrected: Placed inside the schema
-      required: false, 
+      
     },
   },
   {
