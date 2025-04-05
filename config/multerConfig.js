@@ -5,7 +5,7 @@ import cloudinary from './cloudinary.js';
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: 'shift_logs', // Cloudinary folder
+    folder: 'safety-plans', // Cloudinary folder
     resource_type: 'auto', // Detect file type automatically
     allowedFormats: ['jpg', 'jpeg', 'png', 'pdf', 'docx'],
   },
