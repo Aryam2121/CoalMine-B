@@ -17,6 +17,6 @@ router.post("/createSafety", upload.single("file"), createSafetyPlan);
 // ✅ Add more specific routes here if needed before ":id"
 // router.get("/:id", getSafetyPlanById);
 router.put("/:id", upload.single("file"), updateSafetyPlan);
-router.delete("/:id", deleteSafetyPlan);
+router.delete("/safety/:id", deleteSafetyPlan);
 
 export default router;
