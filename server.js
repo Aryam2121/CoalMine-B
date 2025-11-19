@@ -7,6 +7,10 @@ import winston from 'winston';
 import morgan from 'morgan';
 import passport from 'passport';
 import session from 'express-session';
+import helmet from 'helmet';
+import mongoSanitize from 'express-mongo-sanitize';
+import xss from 'xss-clean';
+import rateLimit from 'express-rate-limit';
 
 // Import Routes
 import alertRoutes from './routes/alerts.js';
@@ -29,7 +33,15 @@ import AchievementRoutes from "./routes/AchievementRoutes.js";
 import CompilanceRoutes from "./routes/CompilanceRoutes.js";
 import SafetyReportRoutes from "./routes/SafetReportRoutes.js";
 import SafetyCheckRoutes from './routes/safetyCheckRoutes.js';
+import predictiveAnalyticsRoutes from './routes/predictiveAnalyticsRoutes.js';
+import emergencyRoutes from './routes/emergencyRoutes.js';
+import trainingRoutes from './routes/trainingRoutes.js';
+import advancedAnalyticsRoutes from './routes/advancedAnalyticsRoutes.js';
+import { initializeSocket } from './utils/socketHandler.js';
+import http from 'http';
+
 const app = express();
+const server = http.createServer(app);
 
 // Set up logging
 const logger = winston.createLogger({
@@ -44,9 +56,33 @@ const logger = winston.createLogger({
   ]
 });
 
+// Security Middlewares
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
+app.use(mongoSanitize());
+app.use(xss());
+
+// Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.'
+});
+app.use('/api/', limiter);
+
+// CORS configuration
+const corsOptions = {
+  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
 // Middlewares
-app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('dev'));
 
 // MongoDB connection
@@ -63,6 +99,9 @@ const connectDB = async () => {
 
 // Initialize MongoDB connection
 connectDB();
+
+// Initialize WebSocket
+initializeSocket(server);
 
 // Initialize session and passport
 app.use(session({
@@ -94,6 +133,10 @@ app.use('/api',AchievementRoutes);
 app.use('/api',CompilanceRoutes);
 app.use('/api',SafetyReportRoutes);
 app.use('/api', SafetyCheckRoutes);
+app.use('/api', predictiveAnalyticsRoutes);
+app.use('/api', emergencyRoutes);
+app.use('/api', trainingRoutes);
+app.use('/api', advancedAnalyticsRoutes);
 app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
@@ -106,6 +149,7 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
+  logger.info(`WebSocket server initialized`);
 });
