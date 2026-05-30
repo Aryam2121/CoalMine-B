@@ -1,9 +1,8 @@
 import express from 'express';
-import { handleChatRequest } from '../controllers/chatbotController.js';
+import { getDashboardSummary } from '../controllers/dashboardController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
-
-router.post('/chat', protect, handleChatRequest);
+router.get('/summary', protect, getDashboardSummary);
 
 export default router;

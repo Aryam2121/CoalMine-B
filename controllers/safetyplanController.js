@@ -6,9 +6,6 @@ import SafetyPlan from "../models/SafetyPlanModel.js";
 const getAllSafetyPlans = async (req, res) => {
   try {
     const safetyPlans = await SafetyPlan.find().lean();
-    if (!safetyPlans.length) {
-      return res.status(404).json({ message: "No safety plans found" });
-    }
     res.status(200).json(safetyPlans);
   } catch (error) {
     console.error("Error fetching safety plans:", error);

@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import { isAdminRole } from "../config/roles.js";
 
 // Middleware to protect routes
 export const protect = async (req, res, next) => {
@@ -34,9 +35,8 @@ export const protect = async (req, res, next) => {
 
 // Middleware to check admin role
 export const isAdmin = (req, res, next) => {
-  if (req.user && req.user.role?.toLowerCase() === "admin") {
-    next();
-  } else {
-    return res.status(403).json({ error: "Access denied, admin only" });
+  if (req.user && isAdminRole(req.user.role)) {
+    return next();
   }
+  return res.status(403).json({ error: 'Access denied, admin only' });
 };

@@ -1,12 +1,14 @@
 import mongoose from 'mongoose';
 
 const AttendanceSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // Link to User model
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   name: { type: String, required: true },
-  department: { type: String, enum: ["Mining", "Maintenance"], required: true },
-  date: { type: String, required: true }, // Date as a string (YYYY-MM-DD)
+  department: { type: String, required: true },
+  date: { type: String, required: true },
   status: { type: String, enum: ["Present", "Absent"], default: "Absent" },
 });
+
+AttendanceSchema.index({ userId: 1, date: 1 }, { unique: true });
 
 
 

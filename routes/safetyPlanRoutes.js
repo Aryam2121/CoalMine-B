@@ -3,20 +3,35 @@ import {
   createSafetyPlan,
   deleteSafetyPlan,
   getAllSafetyPlans,
-
   updateSafetyPlan,
-
 } from "../controllers/safetyplanController.js";
-import upload from "../config/multerConfig.js"; // Import the multer configuration
+import upload from "../config/multerConfig.js";
+import { protect } from "../middleware/authMiddleware.js";
+import { requirePermission } from "../middleware/authorize.js";
+import { PERMISSIONS } from "../config/roles.js";
+
 const router = express.Router();
 
-// ✅ Specific routes should come before dynamic ":id" routes
-router.get("/getAllSafety", getAllSafetyPlans); 
-router.post("/createSafety", upload.single("file"), createSafetyPlan);
-
-// ✅ Add more specific routes here if needed before ":id"
-// router.get("/:id", getSafetyPlanById);
-router.put("/:id", upload.single("file"), updateSafetyPlan);
-router.delete("/safety/:id", deleteSafetyPlan);
+router.get("/getAllSafety", protect, getAllSafetyPlans);
+router.post(
+  "/createSafety",
+  protect,
+  requirePermission(PERMISSIONS.SAFETY_PLAN_CREATE),
+  upload.single("file"),
+  createSafetyPlan
+);
+router.put(
+  "/updateSafety/:id",
+  protect,
+  requirePermission(PERMISSIONS.SAFETY_PLAN_CREATE),
+  upload.single("file"),
+  updateSafetyPlan
+);
+router.delete(
+  "/safety/:id",
+  protect,
+  requirePermission(PERMISSIONS.SAFETY_PLAN_DELETE),
+  deleteSafetyPlan
+);
 
 export default router;

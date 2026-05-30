@@ -37,6 +37,7 @@ import predictiveAnalyticsRoutes from './routes/predictiveAnalyticsRoutes.js';
 import emergencyRoutes from './routes/emergencyRoutes.js';
 import trainingRoutes from './routes/trainingRoutes.js';
 import advancedAnalyticsRoutes from './routes/advancedAnalyticsRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
 import { initializeSocket } from './utils/socketHandler.js';
 import http from 'http';
 
@@ -64,18 +65,22 @@ app.use(helmet({
 app.use(mongoSanitize());
 app.use(xss());
 
-// Rate Limiting
+// Rate Limiting (higher cap in dev — SPAs burst many parallel requests on load)
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 100 : 500,
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use('/api/', limiter);
 
 // CORS configuration
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:5174',
   'http://localhost:3000',
+  'http://127.0.0.1:5173',
   'https://coal-mine-sepia.vercel.app',
   process.env.CLIENT_URL
 ].filter(Boolean);
@@ -131,7 +136,22 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Health check (must be before /api routes with /:id wildcards)
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+  });
+});
+
 // Routes
+// IMPORTANT: Register /api/auth first. Never mount router.use(protect) on app.use('/api', …)
+// with catch-all paths like PUT /:id — they shadow /api/attendance, /api/auth/*, etc.
+app.use('/api/auth', authRoutes);
+app.use('/api', AttendanceRoutes);
+
 app.use('/api/notifications',notficationRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api', maintenanceRoutes);
@@ -140,12 +160,10 @@ app.use('/api/mines', mineRoutes);
 app.use('/api', safetyPlanRoutes);
 app.use('/api', shiftLogRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/auth', authRoutes);
 app.use('/api', chatbotRoutes);
 app.use('/api', locationRoutes);
 app.use('/api/prod', Prodrouter);
 app.use('/api', Resourceroutes);
-app.use('/api',AttendanceRoutes);
 app.use('/api',AuditRoutes);
 app.use('/api',AchievementRoutes);
 app.use('/api',CompilanceRoutes);
@@ -155,6 +173,8 @@ app.use('/api', predictiveAnalyticsRoutes);
 app.use('/api', emergencyRoutes);
 app.use('/api', trainingRoutes);
 app.use('/api', advancedAnalyticsRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+
 app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');

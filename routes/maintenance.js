@@ -1,9 +1,12 @@
 import express from 'express';
 const router = express.Router();
 import maintenanceController from '../controllers/maintenanceController.js';
-router.get('/getTask/:id', maintenanceController.getMaintenanceById);
-router.delete('/deleteTask/:id', maintenanceController.deleteMaintenance);
-router.get('/getallTask', maintenanceController.getAllMaintenance);
-router.post('/createTask', maintenanceController.createMaintenance);
-router.put('/updateTask/:id', maintenanceController.updateMaintenance);
+import { protect } from '../middleware/authMiddleware.js';
+
+router.get('/getTask/:id', protect, maintenanceController.getMaintenanceById);
+router.delete('/deleteTask/:id', protect, maintenanceController.deleteMaintenance);
+router.get('/getallTask', protect, maintenanceController.getAllMaintenance);
+router.post('/createTask', protect, maintenanceController.createMaintenance);
+router.put('/updateTask/:id', protect, maintenanceController.updateMaintenance);
+
 export default router;

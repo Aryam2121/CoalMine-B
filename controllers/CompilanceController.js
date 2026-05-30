@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import CompilanceReport from "../models/CompilanceModel.js";
 
 // Get reports with filtering & pagination

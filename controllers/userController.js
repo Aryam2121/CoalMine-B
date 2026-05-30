@@ -36,12 +36,17 @@ const createUser = async (req, res) => {
 // Update a user by ID
 const updateUser = async (req, res) => {
   try {
-    const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
-    if (!updatedUser) return res.status(404).json({ error: 'User not found' });
-    res.status(200).json(updatedUser);
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const { name, email, role, password } = req.body;
+    if (name !== undefined) user.name = name;
+    if (email !== undefined) user.email = email;
+    if (role !== undefined) user.role = role;
+    if (password) user.password = password;
+    await user.save();
+    const safe = user.toObject();
+    delete safe.password;
+    res.status(200).json(safe);
   } catch (error) {
     res.status(400).json({ error: 'Failed to update user' });
   }
@@ -57,10 +62,54 @@ const deleteUser = async (req, res) => {
     res.status(500).json({ error: 'Failed to delete user' });
   }
 };
- const getMyProfile = async (req, res) => {
-  res.json(req.user);
+const getMyProfile = async (req, res) => {
+  const safe = req.user?.toObject ? req.user.toObject() : req.user;
+  if (safe?.password) delete safe.password;
+  res.json(safe);
 };
-// const getAllUsersByRole = async (req, res) => {
+
+/** Self-service profile update (name, email, password only) */
+const updateMyProfile = async (req, res) => {
+  try {
+    if (req.params.id !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'You can only update your own profile' });
+    }
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const { name, email, password } = req.body;
+    if (name !== undefined) user.name = name;
+    if (email !== undefined) user.email = email;
+    if (password?.trim()) user.password = password;
+
+    await user.save();
+    const safe = user.toObject();
+    delete safe.password;
+    res.status(200).json(safe);
+  } catch (error) {
+    res.status(400).json({ error: error.message || 'Failed to update profile' });
+  }
+};
+
+const getAllUsersByRole = async (req, res) => {
+  try {
+    const { role } = req.query;
+    const query = role ? { role } : {};
+    const users = await User.find(query).select('-password').lean();
+    const usersWithAttendance = users.map((user) => ({
+      ...user,
+      name: user.name,
+      department: user.role,
+      status: 'Absent',
+    }));
+    res.status(200).json(usersWithAttendance);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+};
+
+// const getAllUsersByRoleOld = async (req, res) => {
 //   try {
 //     const { role, date } = req.query;
 
@@ -146,4 +195,13 @@ const deleteUser = async (req, res) => {
 // };
 
 
-export  default { getAllUsers, getUserById, createUser, updateUser, deleteUser ,getMyProfile };
+export default {
+  getAllUsers,
+  getUserById,
+  createUser,
+  updateUser,
+  deleteUser,
+  getMyProfile,
+  updateMyProfile,
+  getAllUsersByRole,
+};

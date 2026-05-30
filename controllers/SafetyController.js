@@ -31,12 +31,7 @@ const upload = multer({ storage, fileFilter }).array("attachments", 5); // Allow
 // Get all safety reports
 const getAllSafetyReports = async (req, res) => {
   try {
-    const reports = await SafetyReport.find()
-      .populate("createdBy approvedBy", "name email")
-      .lean();
-    if (!reports.length) {
-      return res.status(404).json({ message: "No safety reports found" });
-    }
+    const reports = await SafetyReport.find().sort({ createdAt: -1 }).lean();
     res.status(200).json(reports);
   } catch (error) {
     console.error("Error fetching reports:", error);
@@ -47,9 +42,7 @@ const getAllSafetyReports = async (req, res) => {
 // Get a single report by ID
 const getSafetyReportById = async (req, res) => {
   try {
-    const report = await SafetyReport.findById(req.params.id)
-      .populate("createdBy approvedBy", "name email")
-      .lean();
+    const report = await SafetyReport.findById(req.params.id).lean();
     if (!report) {
       return res.status(404).json({ message: "Report not found" });
     }

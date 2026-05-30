@@ -128,17 +128,19 @@ const upload = multer({ storage });
 // Get all shift logs
 const getAllShiftLogs = async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query;
-    const shiftLogs = await ShiftLog.find()
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit))
-      .lean();
+    const { page = 1, limit = 50 } = req.query;
+    const parsedLimit = Math.min(parseInt(limit, 10) || 50, 500);
+    const parsedPage = Math.max(parseInt(page, 10) || 1, 1);
+    const [shiftLogs, total] = await Promise.all([
+      ShiftLog.find()
+        .sort({ createdAt: -1 })
+        .skip((parsedPage - 1) * parsedLimit)
+        .limit(parsedLimit)
+        .lean(),
+      ShiftLog.countDocuments(),
+    ]);
 
-    if (!shiftLogs.length) {
-      return res.status(404).json({ message: "No shift logs found" });
-    }
-
-    res.status(200).json({ shiftLogs, page, limit });
+    res.status(200).json({ shiftLogs, page: parsedPage, limit: parsedLimit, total });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error fetching shift logs", error: error.message });

@@ -1,10 +1,27 @@
 import express from "express";
-const router = express.Router();
-import { getWorkers,addWorker,updateAttendance,deleteWorker } from "../controllers/attendanceController.js";
+import { protect } from "../middleware/authMiddleware.js";
+import {
+  getAttendanceForDate,
+  upsertAttendance,
+  bulkUpsertAttendance,
+  getAttendanceSummary,
+  getWorkers,
+  addWorker,
+  updateAttendance,
+  deleteWorker,
+} from "../controllers/attendanceController.js";
 
-router.get("/getworkers", getWorkers);
-router.post("/addworkers", addWorker);
-router.put("/workers/:id", updateAttendance);
-router.delete("/workers/:id", deleteWorker);
+const router = express.Router();
+
+router.get("/attendance", protect, getAttendanceForDate);
+router.put("/attendance/bulk", protect, bulkUpsertAttendance);
+router.put("/attendance", protect, upsertAttendance);
+router.get("/attendance/summary", protect, getAttendanceSummary);
+
+// Legacy routes
+router.get("/getworkers", protect, getWorkers);
+router.post("/addworkers", protect, addWorker);
+router.put("/workers/:id", protect, updateAttendance);
+router.delete("/workers/:id", protect, deleteWorker);
 
 export default router;

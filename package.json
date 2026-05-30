@@ -6,7 +6,12 @@
   "scripts": {
     "start": "npm i",
     "dev": "nodemon server.js",
-    "build": ""
+    "build": "",
+    "seed": "node scripts/seed.js",
+    "seed:fresh": "node scripts/seed.js --fresh",
+    "seed:large": "node scripts/seed.js --fresh --count=2000",
+    "seed:xlarge": "node scripts/seed.js --fresh --count=5000",
+    "test:api": "node scripts/api-smoke-test.mjs"
   },
   "author": "",
   "license": "ISC",

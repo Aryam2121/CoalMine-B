@@ -1,4 +1,5 @@
 import Resource from "../models/Resource.js";
+import Mine from "../models/Mine.js";
 
 // Get all resources
 const getAllResources = async (req, res) => {
@@ -22,13 +23,28 @@ const createResource = async (req, res) => {
 
   console.log("Request Body:", req.body);
   
-  const { name, used, available } = req.body;
-  if (used + available !== 100) {
-    return res.status(400).json({ error: 'Used + Available must be 100' });
-  }
-  
+  const { name, used, available, mineId, type, unit } = req.body;
+  const usedNum = Number(used) || 0;
+  const availNum = Number(available) || 0;
+
   try {
-    const newResource = new Resource({ name, used, available });
+    let resolvedMineId = mineId;
+    if (!resolvedMineId) {
+      const firstMine = await Mine.findOne().select('_id');
+      resolvedMineId = firstMine?._id;
+    }
+    if (!resolvedMineId) {
+      return res.status(400).json({ error: 'No mine found. Run npm run seed first.' });
+    }
+
+    const newResource = new Resource({
+      name,
+      used: usedNum,
+      available: availNum,
+      mineId: resolvedMineId,
+      type: type || 'material',
+      unit: unit || '%',
+    });
     await newResource.save();
     res.status(201).json(newResource);
   } catch (err) {

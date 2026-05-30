@@ -1,12 +1,10 @@
 import Maintenance from "../models/Maintenance.js";
+import Mine from "../models/Mine.js";
 
 // Fetch all maintenance tasks with improved error handling
 const getAllMaintenance = async (req, res) => {
   try {
-    const maintenanceTasks = await Maintenance.find().sort({ date: -1 }); // Sort by date descending
-    if (maintenanceTasks.length === 0) {
-      return res.status(404).json({ message: "No maintenance tasks found" });
-    }
+    const maintenanceTasks = await Maintenance.find().sort({ date: -1 }).populate('assignedTo', 'name role');
     res.status(200).json(maintenanceTasks);
   } catch (error) {
     console.error(error);  // Log error for debugging
@@ -17,20 +15,32 @@ const getAllMaintenance = async (req, res) => {
 // Create a new maintenance task with validation and better error handling
 const createMaintenance = async (req, res) => {
   try {
-    const { task, date, status, description, priority } = req.body;
+    const { task, date, status, description, priority, mineId, dueDate } = req.body;
 
-    // Validate required fields
-    if (!task || !date) {
-      return res.status(400).json({ message: "Task and Date are required" });
+    if (!task) {
+      return res.status(400).json({ message: "Task is required" });
     }
 
-    // Create new maintenance task
+    let resolvedMineId = mineId;
+    if (!resolvedMineId) {
+      const firstMine = await Mine.findOne().select('_id');
+      resolvedMineId = firstMine?._id;
+    }
+    if (!resolvedMineId) {
+      return res.status(400).json({ message: "No mine found. Run npm run seed first." });
+    }
+
+    const taskDate = date ? new Date(date) : new Date();
+    const taskDue = dueDate ? new Date(dueDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
     const maintenanceTask = new Maintenance({
+      mineId: resolvedMineId,
       task,
-      date,
-      status: status || 'pending',  // Default status to 'pending' if not provided
+      date: taskDate,
+      dueDate: taskDue,
+      status: status || 'pending',
       description,
-      priority: priority || 3,  // Default priority to 3 if not provided
+      priority: priority ? Number(priority) : 3,
     });
 
     await maintenanceTask.save();

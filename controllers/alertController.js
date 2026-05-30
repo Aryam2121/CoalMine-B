@@ -1,35 +1,34 @@
 import Alert from '../models/Alert.js';
 import mongoose from 'mongoose';
+import { emitToAll } from '../utils/socketHandler.js';
 
-// Fetch all alerts with filtering, sorting, and pagination
 const getAllAlerts = async (req, res) => {
   try {
     const { type, resolved, page = 1, limit = 10, sort = '-timestamp' } = req.query;
 
-    // Query filters
     const query = {};
     if (type) query.type = type;
-    if (resolved !== undefined) query.resolved = resolved === 'true';
+    if (resolved !== undefined && resolved !== null && resolved !== '') {
+      query.resolved = resolved === 'true';
+    }
 
-    // Pagination options
-    const options = {
-      page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
-      sort,
-    };
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
 
     const alerts = await Alert.find(query)
-      .sort(options.sort)
-      .skip((options.page - 1) * options.limit)
-      .limit(options.limit);
+      .sort(sort)
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum)
+      .populate('createdBy', 'name email')
+      .populate('resolvedBy', 'name email');
 
     const totalAlerts = await Alert.countDocuments(query);
 
     res.json({
       alerts,
       total: totalAlerts,
-      currentPage: options.page,
-      totalPages: Math.ceil(totalAlerts / options.limit),
+      currentPage: pageNum,
+      totalPages: Math.ceil(totalAlerts / limitNum) || 1,
     });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching alerts', error: error.message });
@@ -40,7 +39,6 @@ const createAlert = async (req, res) => {
   try {
     const { message, type, createdBy } = req.body;
 
-    // Validation
     if (!message || !type) {
       return res.status(400).json({ message: 'Message and type are required' });
     }
@@ -49,8 +47,18 @@ const createAlert = async (req, res) => {
       return res.status(400).json({ message: 'Invalid alert type' });
     }
 
-    const alert = new Alert({ message, type, createdBy });
+    const alert = new Alert({
+      message,
+      type,
+      ...(createdBy && mongoose.Types.ObjectId.isValid(createdBy) ? { createdBy } : {}),
+    });
     await alert.save();
+
+    const saved = await Alert.findById(alert._id)
+      .populate('createdBy', 'name email')
+      .lean();
+
+    emitToAll('alert:new', saved || alert.toObject());
 
     res.status(201).json(alert);
   } catch (error) {
@@ -58,36 +66,65 @@ const createAlert = async (req, res) => {
   }
 };
 
-// Mark an alert as resolved
- const resolveAlert = async (req, res) => {
+const resolveAlert = async (req, res) => {
   try {
-    const { alertId } = req.params;
-    const { user } = req.body; // Assuming the user is passed in the request body as a string (e.g., 'admin')
+    const { id } = req.params;
+    const resolvedBy = req.body.resolvedBy || req.body.userId;
 
-    // Find the user by username or another identifier
-    const userObj = await User.findOne({ username: user });
-    if (!userObj) {
-      return res.status(400).json({ message: 'User not found' });
-    }
-
-    // Find the alert and resolve it
-    const alert = await Alert.findById(alertId);
+    const alert = await Alert.findById(id);
     if (!alert) {
       return res.status(404).json({ message: 'Alert not found' });
     }
 
-    // Resolve the alert with the user's ObjectId
-    await alert.resolve(userObj._id);
+    if (alert.resolved) {
+      return res.status(200).json({ message: 'Alert already resolved', alert });
+    }
+
+    if (resolvedBy && mongoose.Types.ObjectId.isValid(resolvedBy)) {
+      await alert.resolve(resolvedBy);
+    } else {
+      alert.resolved = true;
+      alert.resolvedAt = new Date();
+      await alert.save({ validateBeforeSave: false });
+    }
 
     res.status(200).json({ message: 'Alert resolved', alert });
+
+    emitToAll('alert:resolved', {
+      alertId: alert._id,
+      alert: alert.toObject ? alert.toObject() : alert,
+    });
   } catch (error) {
     console.error('Error resolving alert:', error.message);
-    res.status(500).json({ message: 'Error resolving alert' });
+    res.status(500).json({ message: 'Error resolving alert', error: error.message });
   }
 };
 
-// Delete an alert
- const deleteAlert = async (req, res) => {
+const resolveAllAlerts = async (req, res) => {
+  try {
+    const resolvedBy = req.body.resolvedBy || req.body.userId;
+    const update = {
+      resolved: true,
+      resolvedAt: new Date(),
+    };
+    if (resolvedBy && mongoose.Types.ObjectId.isValid(resolvedBy)) {
+      update.resolvedBy = resolvedBy;
+    }
+
+    const result = await Alert.updateMany({ resolved: false }, { $set: update });
+
+    res.status(200).json({
+      message: 'All unresolved alerts marked as resolved',
+      modifiedCount: result.modifiedCount,
+    });
+
+    emitToAll('alert:bulk-resolved', { modifiedCount: result.modifiedCount });
+  } catch (error) {
+    res.status(500).json({ message: 'Error resolving alerts', error: error.message });
+  }
+};
+
+const deleteAlert = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -97,8 +134,11 @@ const createAlert = async (req, res) => {
     }
 
     res.json({ message: 'Alert deleted successfully', alert });
+
+    emitToAll('alert:deleted', { alertId: id });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting alert', error: error.message });
   }
 };
-export default { getAllAlerts, createAlert, resolveAlert, deleteAlert };
+
+export default { getAllAlerts, createAlert, resolveAlert, resolveAllAlerts, deleteAlert };
