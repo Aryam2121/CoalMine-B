@@ -61,21 +61,12 @@ const logger = winston.createLogger({
 app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 app.use(mongoSanitize());
 app.use(xss());
 
-// Rate Limiting (higher cap in dev — SPAs burst many parallel requests on load)
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'production' ? 100 : 500,
-  message: 'Too many requests from this IP, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use('/api/', limiter);
-
-// CORS configuration
+// CORS configuration (must run before rate limiter so 429 responses include CORS headers)
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
@@ -102,6 +93,17 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization']
 };
 app.use(cors(corsOptions));
+
+// Rate Limiting (disabled in dev — SPAs burst many parallel requests on load)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 100 : 500,
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV !== 'production',
+});
+app.use('/api/', limiter);
 
 // Middlewares
 app.use(express.json({ limit: '10mb' }));
@@ -175,11 +177,6 @@ app.use('/api', trainingRoutes);
 app.use('/api', advancedAnalyticsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-app.use((req, res, next) => {
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-  res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-  next();
-});
 // Global error handling middleware
 app.use((err, req, res, next) => {
   logger.error(`Error: ${err.message}`);
