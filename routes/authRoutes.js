@@ -39,10 +39,15 @@ const issueAuthResponse = (user, res, expiresIn = "7d") => {
 // Save OTP to user with hashing
 async function saveOtpToUser(userId, otp) {
   const hashedOtp = await bcrypt.hash(otp, 10);
-  await User.findByIdAndUpdate(userId, {
-    otp: hashedOtp,
-    otpExpiry: Date.now() + 5 * 60 * 1000,
-  });
+  await User.updateOne(
+    { _id: userId },
+    {
+      $set: {
+        otp: hashedOtp,
+        otpExpiry: new Date(Date.now() + 5 * 60 * 1000),
+      },
+    }
+  );
 }
 
 // Verify OTP
@@ -86,10 +91,8 @@ router.post("/signup", async (req, res) => {
       return res.status(409).json({ message: "Email already exists" });
     }
 
-    
-  
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ name, email, password: hashedPassword, role, googleId: googleId || null });
+    // Plain password — User model pre-save hook performs single bcrypt hash
+    const newUser = new User({ name, email, password, role, googleId: googleId || null });
     await newUser.save();
 
     const otp = generateOtp();

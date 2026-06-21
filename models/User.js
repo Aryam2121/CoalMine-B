@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
 // User Schema
@@ -48,13 +48,19 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Pre-save hook for password hashing
-userSchema.pre('save', async function (next) {
+const isBcryptHash = (value) =>
+  typeof value === 'string' && /^\$2[aby]\$\d{2}\$/.test(value);
+
+// Pre-save hook for password hashing (single hash only)
+userSchema.pre('save', function (next) {
   if (!this.isModified('password') || !this.password) {
     return next();
   }
+  if (isBcryptHash(this.password)) {
+    return next();
+  }
   try {
-    this.password = await bcrypt.hash(this.password, 10);
+    this.password = bcrypt.hashSync(this.password, 10);
     next();
   } catch (error) {
     next(error);
