@@ -3,6 +3,18 @@ import jwt from 'jsonwebtoken';
 import RealTimeMonitoring from '../models/RealTimeMonitoring.js';
 import EmergencyResponse from '../models/EmergencyResponse.js';
 import Alert from '../models/Alert.js';
+import {
+  initSocketAuthState,
+  authorizeMineJoin,
+  authorizeMineEvent,
+  authorizePermission,
+  authorizeManager,
+  authorizeAdmin,
+  authorizeSelfUserId,
+  deny,
+  normalizeMineId,
+  PERMISSIONS,
+} from './socketAuth.js';
 
 let io;
 
@@ -23,7 +35,7 @@ export const initializeSocket = (server) => {
   // Authentication middleware
   io.use((socket, next) => {
     const token = socket.handshake.auth.token;
-    
+
     if (!token) {
       return next(new Error('Authentication error'));
     }
@@ -39,33 +51,67 @@ export const initializeSocket = (server) => {
   });
 
   io.on('connection', (socket) => {
+    initSocketAuthState(socket);
     console.log(`User connected: ${socket.userId}`);
 
     // Join mine-specific room
-    socket.on('join:mine', (mineId) => {
-      socket.join(`mine:${mineId}`);
-      console.log(`User ${socket.userId} joined mine room: ${mineId}`);
+    socket.on('join:mine', async (mineId, ack) => {
+      try {
+        const auth = await authorizeMineJoin(socket, mineId);
+        if (!auth.ok) {
+          deny(socket, auth.errorEvent, auth.message);
+          if (typeof ack === 'function') ack({ ok: false, message: auth.message });
+          return;
+        }
+
+        socket.join(`mine:${auth.mineId}`);
+        socket.allowedMines.add(auth.mineId);
+        console.log(`User ${socket.userId} joined mine room: ${auth.mineId}`);
+        if (typeof ack === 'function') ack({ ok: true, mineId: auth.mineId });
+      } catch (error) {
+        console.error('Error joining mine room:', error);
+        deny(socket, 'join:mine:error', 'Failed to join mine room');
+        if (typeof ack === 'function') ack({ ok: false, message: 'Failed to join mine room' });
+      }
     });
 
     // Leave mine room
     socket.on('leave:mine', (mineId) => {
-      socket.leave(`mine:${mineId}`);
+      const id = normalizeMineId(mineId);
+      if (!id) return;
+      socket.leave(`mine:${id}`);
+      socket.allowedMines.delete(id);
     });
 
     // Real-time location tracking
     socket.on('location:update', async (data) => {
-      const { mineId, userId, location, vitalSigns } = data;
-      
+      const { mineId, userId, location, vitalSigns } = data || {};
+
       try {
-        let monitoring = await RealTimeMonitoring.findOne({ mineId }).sort({ timestamp: -1 });
-        
-        if (!monitoring) {
-          monitoring = new RealTimeMonitoring({ mineId, activePersonnel: [] });
+        const mineAuth = await authorizeMineEvent(socket, mineId, {
+          errorEvent: 'location:update:error',
+        });
+        if (!mineAuth.ok) {
+          deny(socket, mineAuth.errorEvent, mineAuth.message);
+          return;
         }
 
-        // Update personnel location
+        const selfAuth = authorizeSelfUserId(socket, userId, 'location:update:error');
+        if (!selfAuth.ok) {
+          deny(socket, selfAuth.errorEvent, selfAuth.message);
+          return;
+        }
+
+        let monitoring = await RealTimeMonitoring.findOne({ mineId: mineAuth.mineId }).sort({
+          timestamp: -1,
+        });
+
+        if (!monitoring) {
+          monitoring = new RealTimeMonitoring({ mineId: mineAuth.mineId, activePersonnel: [] });
+        }
+
         const personIndex = monitoring.activePersonnel.findIndex(
-          p => p.userId.toString() === userId
+          (p) => p.userId.toString() === String(socket.userId)
         );
 
         if (personIndex >= 0) {
@@ -78,56 +124,59 @@ export const initializeSocket = (server) => {
 
         await monitoring.save();
 
-        // Broadcast to mine room
-        io.to(`mine:${mineId}`).emit('location:updated', {
-          userId,
+        io.to(`mine:${mineAuth.mineId}`).emit('location:updated', {
+          userId: socket.userId,
           location,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       } catch (error) {
         console.error('Error updating location:', error);
+        deny(socket, 'location:update:error', 'Failed to update location');
       }
     });
 
     // Emergency SOS
     socket.on('emergency:sos', async (data) => {
-      const { mineId, emergencyType, location, description } = data;
-      
+      const { mineId, emergencyType, location, description } = data || {};
+
       try {
+        const mineAuth = await authorizeMineEvent(socket, mineId, { errorEvent: 'emergency:error' });
+        if (!mineAuth.ok) {
+          deny(socket, mineAuth.errorEvent, mineAuth.message);
+          return;
+        }
+
         const emergency = new EmergencyResponse({
-          mineId,
+          mineId: mineAuth.mineId,
           reportedBy: socket.userId,
           emergencyType,
           severity: 'critical',
           location,
           description: description || 'SOS Emergency Alert',
-          status: 'active'
+          status: 'active',
         });
 
         await emergency.save();
 
-        // Create system alert
         await Alert.create({
           message: `🚨 SOS EMERGENCY: ${emergencyType} at ${location?.area || 'Unknown Location'}`,
           type: 'critical',
-          createdBy: mineId
+          createdBy: mineAuth.mineId,
         });
 
-        // Broadcast to all users in mine
-        io.to(`mine:${mineId}`).emit('emergency:alert', {
+        io.to(`mine:${mineAuth.mineId}`).emit('emergency:alert', {
           emergency,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
 
-        // Notify administrators
         io.emit('emergency:admin', {
           emergency,
-          mineId
+          mineId: mineAuth.mineId,
         });
 
         socket.emit('emergency:confirmed', {
           emergencyId: emergency.emergencyId,
-          message: 'Emergency response initiated'
+          message: 'Emergency response initiated',
         });
       } catch (error) {
         console.error('Error handling SOS:', error);
@@ -137,52 +186,93 @@ export const initializeSocket = (server) => {
 
     // Real-time alerts
     socket.on('alert:create', async (data) => {
-      const { mineId, message, type } = data;
-      
+      const { mineId, message, type } = data || {};
+
       try {
+        const permAuth = authorizePermission(socket, PERMISSIONS.ALERT_CREATE, 'alert:error');
+        if (!permAuth.ok) {
+          deny(socket, permAuth.errorEvent, permAuth.message);
+          return;
+        }
+
+        const mineAuth = await authorizeMineEvent(socket, mineId, { errorEvent: 'alert:error' });
+        if (!mineAuth.ok) {
+          deny(socket, mineAuth.errorEvent, mineAuth.message);
+          return;
+        }
+
         const alert = await Alert.create({
           message,
           type,
-          createdBy: mineId
+          createdBy: mineAuth.mineId,
         });
 
-        // Broadcast to mine room
-        io.to(`mine:${mineId}`).emit('alert:new', alert);
+        io.to(`mine:${mineAuth.mineId}`).emit('alert:new', alert);
       } catch (error) {
         console.error('Error creating alert:', error);
+        deny(socket, 'alert:error', 'Failed to create alert');
       }
     });
 
     // Alert acknowledged
     socket.on('alert:acknowledge', async (data) => {
-      const { alertId, mineId } = data;
-      
+      const { alertId, mineId } = data || {};
+
       try {
+        const permAuth = authorizePermission(socket, PERMISSIONS.ALERT_RESOLVE, 'alert:error');
+        if (!permAuth.ok) {
+          deny(socket, permAuth.errorEvent, permAuth.message);
+          return;
+        }
+
+        const mineAuth = await authorizeMineEvent(socket, mineId, { errorEvent: 'alert:error' });
+        if (!mineAuth.ok) {
+          deny(socket, mineAuth.errorEvent, mineAuth.message);
+          return;
+        }
+
         const alert = await Alert.findById(alertId);
         if (alert && !alert.resolved) {
           await alert.resolve(socket.userId);
-          
-          io.to(`mine:${mineId}`).emit('alert:resolved', {
+
+          io.to(`mine:${mineAuth.mineId}`).emit('alert:resolved', {
             alertId,
             resolvedBy: socket.userId,
-            resolvedAt: new Date()
+            resolvedAt: new Date(),
           });
         }
       } catch (error) {
         console.error('Error acknowledging alert:', error);
+        deny(socket, 'alert:error', 'Failed to acknowledge alert');
       }
     });
 
     // Equipment status update
     socket.on('equipment:status', async (data) => {
-      const { mineId, equipmentId, status, metrics } = data;
-      
+      const { mineId, equipmentId, status, metrics } = data || {};
+
       try {
-        let monitoring = await RealTimeMonitoring.findOne({ mineId }).sort({ timestamp: -1 });
-        
+        const managerAuth = authorizeManager(socket, 'equipment:status:error');
+        if (!managerAuth.ok) {
+          deny(socket, managerAuth.errorEvent, managerAuth.message);
+          return;
+        }
+
+        const mineAuth = await authorizeMineEvent(socket, mineId, {
+          errorEvent: 'equipment:status:error',
+        });
+        if (!mineAuth.ok) {
+          deny(socket, mineAuth.errorEvent, mineAuth.message);
+          return;
+        }
+
+        let monitoring = await RealTimeMonitoring.findOne({ mineId: mineAuth.mineId }).sort({
+          timestamp: -1,
+        });
+
         if (monitoring) {
           const equipmentIndex = monitoring.equipmentStatus.findIndex(
-            e => e.equipmentId === equipmentId
+            (e) => e.equipmentId === equipmentId
           );
 
           if (equipmentIndex >= 0) {
@@ -191,97 +281,156 @@ export const initializeSocket = (server) => {
             await monitoring.save();
           }
 
-          // Broadcast equipment update
-          io.to(`mine:${mineId}`).emit('equipment:updated', {
+          io.to(`mine:${mineAuth.mineId}`).emit('equipment:updated', {
             equipmentId,
             status,
             metrics,
-            timestamp: new Date()
+            timestamp: new Date(),
           });
 
-          // If equipment is in warning or malfunction, create alert
           if (status === 'warning' || status === 'malfunction') {
             await Alert.create({
               message: `Equipment Alert: ${equipmentId} status changed to ${status}`,
               type: status === 'malfunction' ? 'critical' : 'warning',
-              createdBy: mineId
+              createdBy: mineAuth.mineId,
             });
 
-            io.to(`mine:${mineId}`).emit('equipment:alert', {
+            io.to(`mine:${mineAuth.mineId}`).emit('equipment:alert', {
               equipmentId,
-              status
+              status,
             });
           }
         }
       } catch (error) {
         console.error('Error updating equipment status:', error);
+        deny(socket, 'equipment:status:error', 'Failed to update equipment status');
       }
     });
 
     // Chat/Communication
-    socket.on('chat:message', (data) => {
-      const { mineId, message, channel } = data;
-      
-      io.to(`mine:${mineId}`).emit('chat:new', {
-        from: socket.userId,
-        message,
-        channel: channel || 'general',
-        timestamp: new Date()
-      });
+    socket.on('chat:message', async (data) => {
+      const { mineId, message, channel } = data || {};
+
+      try {
+        const mineAuth = await authorizeMineEvent(socket, mineId, { errorEvent: 'chat:error' });
+        if (!mineAuth.ok) {
+          deny(socket, mineAuth.errorEvent, mineAuth.message);
+          return;
+        }
+
+        io.to(`mine:${mineAuth.mineId}`).emit('chat:new', {
+          from: socket.userId,
+          message,
+          channel: channel || 'general',
+          timestamp: new Date(),
+        });
+      } catch (error) {
+        console.error('Error sending chat message:', error);
+        deny(socket, 'chat:error', 'Failed to send chat message');
+      }
     });
 
     // Environmental monitoring updates
     socket.on('environment:update', async (data) => {
-      const { mineId, conditions } = data;
-      
+      const { mineId, conditions } = data || {};
+
       try {
-        let monitoring = await RealTimeMonitoring.findOne({ mineId }).sort({ timestamp: -1 });
-        
+        const managerAuth = authorizeManager(socket, 'environment:update:error');
+        if (!managerAuth.ok) {
+          deny(socket, managerAuth.errorEvent, managerAuth.message);
+          return;
+        }
+
+        const mineAuth = await authorizeMineEvent(socket, mineId, {
+          errorEvent: 'environment:update:error',
+        });
+        if (!mineAuth.ok) {
+          deny(socket, mineAuth.errorEvent, mineAuth.message);
+          return;
+        }
+
+        let monitoring = await RealTimeMonitoring.findOne({ mineId: mineAuth.mineId }).sort({
+          timestamp: -1,
+        });
+
         if (monitoring) {
           monitoring.environmentalConditions = {
             ...monitoring.environmentalConditions,
-            ...conditions
+            ...conditions,
           };
           await monitoring.save();
 
-          io.to(`mine:${mineId}`).emit('environment:updated', {
+          io.to(`mine:${mineAuth.mineId}`).emit('environment:updated', {
             conditions,
-            timestamp: new Date()
+            timestamp: new Date(),
           });
 
-          // Check for dangerous levels
-          if (conditions.gasLevels) {
+          if (conditions?.gasLevels) {
             const { methane, carbonMonoxide } = conditions.gasLevels;
             if (methane > 1.5 || carbonMonoxide > 50) {
               await Alert.create({
                 message: `⚠️ Dangerous gas levels detected! CH4: ${methane}%, CO: ${carbonMonoxide}ppm`,
                 type: 'critical',
-                createdBy: mineId
+                createdBy: mineAuth.mineId,
               });
 
-              io.to(`mine:${mineId}`).emit('environment:danger', {
+              io.to(`mine:${mineAuth.mineId}`).emit('environment:danger', {
                 gasLevels: conditions.gasLevels,
-                message: 'Evacuation may be required'
+                message: 'Evacuation may be required',
               });
             }
           }
         }
       } catch (error) {
         console.error('Error updating environment:', error);
+        deny(socket, 'environment:update:error', 'Failed to update environment');
       }
     });
 
     // Notification system
-    socket.on('notification:send', (data) => {
-      const { target, notification } = data;
-      
-      if (target === 'broadcast') {
-        io.emit('notification:receive', notification);
-      } else if (target.startsWith('mine:')) {
-        io.to(target).emit('notification:receive', notification);
-      } else if (target.startsWith('user:')) {
-        const userId = target.split(':')[1];
-        io.to(userId).emit('notification:receive', notification);
+    socket.on('notification:send', async (data) => {
+      const { target, notification } = data || {};
+
+      try {
+        if (target === 'broadcast') {
+          const adminAuth = authorizeAdmin(socket, 'notification:error');
+          if (!adminAuth.ok) {
+            deny(socket, adminAuth.errorEvent, adminAuth.message);
+            return;
+          }
+          io.emit('notification:receive', notification);
+          return;
+        }
+
+        if (typeof target === 'string' && target.startsWith('mine:')) {
+          const mineId = target.slice('mine:'.length);
+          const mineAuth = await authorizeMineEvent(socket, mineId, {
+            errorEvent: 'notification:error',
+          });
+          if (!mineAuth.ok) {
+            deny(socket, mineAuth.errorEvent, mineAuth.message);
+            return;
+          }
+          io.to(`mine:${mineAuth.mineId}`).emit('notification:receive', notification);
+          return;
+        }
+
+        if (typeof target === 'string' && target.startsWith('user:')) {
+          const userId = target.split(':')[1];
+          const isSelf = String(userId) === String(socket.userId);
+          const adminAuth = authorizeAdmin(socket, 'notification:error');
+          if (!isSelf && !adminAuth.ok) {
+            deny(socket, 'notification:error', 'You can only send notifications to yourself');
+            return;
+          }
+          io.to(userId).emit('notification:receive', notification);
+          return;
+        }
+
+        deny(socket, 'notification:error', 'Invalid notification target');
+      } catch (error) {
+        console.error('Error sending notification:', error);
+        deny(socket, 'notification:error', 'Failed to send notification');
       }
     });
 
