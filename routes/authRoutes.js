@@ -7,6 +7,12 @@ import passport from "../config/passport.js";
 import { OAuth2Client } from "google-auth-library";
 import { protect } from "../middleware/authMiddleware.js";
 import { ALL_ROLES, SIGNUP_ROLES, canSignupAs, normalizeRole } from "../config/roles.js";
+import {
+  validateUserRegistration,
+  validateUserLogin,
+  validateSendOtp,
+  validateVerifyOtp,
+} from "../middleware/validation.js";
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -71,13 +77,10 @@ async function verifyGoogleToken(token) {
 }
 
 // Signup Route
-router.post("/signup", async (req, res) => {
+router.post("/signup", validateUserRegistration, async (req, res) => {
   try {
-    const { name, email, password, role , googleId } = req.body;
+    const { name, email, password, role, googleId } = req.body;
 
-    if (!name || !email || !password || !role) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
     if (!canSignupAs(role)) {
       return res.status(400).json({
         message: "Invalid role for registration. Admin accounts must be created by an administrator.",
@@ -106,7 +109,7 @@ router.post("/signup", async (req, res) => {
 });
 
 // Login Route
-router.post("/login", async (req, res) => {
+router.post("/login", validateUserLogin, async (req, res) => {
   try {
     const { email, password, otp } = req.body;
     const user = await User.findOne({ email }).select('+password +otp +otpExpiry');
@@ -143,7 +146,7 @@ router.get("/signup-roles", (req, res) => {
 });
 
 // Send OTP Route
-router.post("/send-otp", async (req, res) => {
+router.post("/send-otp", validateSendOtp, async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
@@ -161,7 +164,7 @@ router.post("/send-otp", async (req, res) => {
 
 // Verify OTP Route
 // Verify OTP Route
-router.post("/verify-otp", async (req, res) => {
+router.post("/verify-otp", validateVerifyOtp, async (req, res) => {
   try {
     const { email, otp } = req.body;
     const user = await User.findOne({ email }).select('+otp +otpExpiry');
