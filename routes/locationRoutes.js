@@ -1,12 +1,11 @@
 import express from "express";
-
 import { getAllLocations, createLocation } from "../controllers/locationController.js";
+import { protect } from "../middleware/authMiddleware.js";
+import { requireManager } from "../middleware/authorize.js";
+
 const router = express.Router();
 
-// Route for getting all locations
-router.get("/getallloc", getAllLocations);
-
-// Route for creating a new location
-router.post("/createloc", createLocation);
+router.get("/getallloc", protect, getAllLocations);
+router.post("/createloc", protect, requireManager, createLocation);
 
 export default router;
