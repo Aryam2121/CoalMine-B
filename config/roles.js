@@ -83,6 +83,10 @@ export const hasPermission = (role, permission) => {
   return fn ? fn(role) : false;
 };
 
+/** All permission keys granted to a role (for client RBAC sync) */
+export const getPermissionsForRole = (role) =>
+  Object.values(PERMISSIONS).filter((permission) => hasPermission(role, permission));
+
 export default {
   ROLES,
   ALL_ROLES,
@@ -92,5 +96,6 @@ export default {
   isManagerRole,
   canSignupAs,
   hasPermission,
+  getPermissionsForRole,
   PERMISSIONS,
 };

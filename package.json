@@ -4,9 +4,9 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "npm i",
+    "start": "node server.js",
     "dev": "nodemon server.js",
-    "build": "",
+    "build": "node -e \"console.log('No build step for API server')\"",
     "seed": "node scripts/seed.js",
     "seed:fresh": "node scripts/seed.js --fresh",
     "seed:large": "node scripts/seed.js --fresh --count=2000",

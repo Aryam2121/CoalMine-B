@@ -6,7 +6,15 @@ import { generateOtp, sendOtpEmail } from "../utils/otpUtils.js";
 import passport from "../config/passport.js";
 import { OAuth2Client } from "google-auth-library";
 import { protect } from "../middleware/authMiddleware.js";
-import { ALL_ROLES, SIGNUP_ROLES, canSignupAs, normalizeRole } from "../config/roles.js";
+import {
+  ALL_ROLES,
+  SIGNUP_ROLES,
+  canSignupAs,
+  normalizeRole,
+  getPermissionsForRole,
+  isAdminRole,
+  isManagerRole,
+} from "../config/roles.js";
 import {
   validateUserRegistration,
   validateUserLogin,
@@ -25,6 +33,11 @@ const formatUser = (user) => ({
   name: user.name,
   email: user.email,
   role: user.role,
+  permissions: getPermissionsForRole(user.role),
+  access: {
+    isAdmin: isAdminRole(user.role),
+    isManager: isManagerRole(user.role),
+  },
 });
 
 const issueAuthResponse = (user, res, expiresIn = "7d") => {
