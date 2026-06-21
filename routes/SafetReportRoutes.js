@@ -14,7 +14,7 @@ import { PERMISSIONS } from "../config/roles.js";
 const router = express.Router();
 
 router.get("/getAllReports", protect, getAllSafetyReports);
-router.post("/createReports", protect, upload, createSafetyReport);
+router.post("/createReports", protect, requirePermission(PERMISSIONS.SAFETY_REPORT_CREATE), upload, createSafetyReport);
 router.put("/reports/:id/approve", protect, requirePermission(PERMISSIONS.SAFETY_REPORT_APPROVE), approveSafetyReport);
 router.delete("/reports/:id", protect, requirePermission(PERMISSIONS.SAFETY_PLAN_DELETE), deleteSafetyReport);
 router.get("/reports/:id", protect, getSafetyReportById);

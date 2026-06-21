@@ -7,12 +7,10 @@ const predictiveAnalyticsSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Mine',
       required: true,
-      index: true,
     },
     analysisDate: {
       type: Date,
       default: Date.now,
-      index: true,
     },
     riskScore: {
       type: Number,

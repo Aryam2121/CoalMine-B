@@ -4,9 +4,7 @@ import Mine from "../models/Mine.js";
 // Get all resources
 const getAllResources = async (req, res) => {
   try {
-    console.log("Fetching resources...");
-    const resources = await Resource.find({});;
-    console.log("Fetched resources:", resources);
+    const resources = await Resource.find({});
     res.json(resources);
   } catch (err) {
     console.error("Error fetching resources:", err);
@@ -21,8 +19,6 @@ const createResource = async (req, res) => {
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
 
-  console.log("Request Body:", req.body);
-  
   const { name, used, available, mineId, type, unit } = req.body;
   const usedNum = Number(used) || 0;
   const availNum = Number(available) || 0;

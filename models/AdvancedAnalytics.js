@@ -7,12 +7,10 @@ const advancedAnalyticsSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Mine',
       required: true,
-      index: true,
     },
     reportDate: {
       type: Date,
       default: Date.now,
-      index: true,
     },
     reportType: {
       type: String,

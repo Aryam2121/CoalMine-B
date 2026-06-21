@@ -13,7 +13,6 @@ const emergencyResponseSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Mine',
       required: true,
-      index: true,
     },
     reportedBy: {
       type: mongoose.Schema.Types.ObjectId,

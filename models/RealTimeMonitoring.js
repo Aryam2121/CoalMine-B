@@ -7,12 +7,10 @@ const realTimeMonitoringSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Mine',
       required: true,
-      index: true,
     },
     timestamp: {
       type: Date,
       default: Date.now,
-      index: true,
     },
     activePersonnel: [
       {

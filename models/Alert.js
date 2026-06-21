@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import logger from '../utils/logger.js';
 
 // Alert Schema
 const alertSchema = new mongoose.Schema(
@@ -55,7 +56,7 @@ alertSchema.pre('save', function (next) {
     return next(new Error('resolvedBy must be set when resolving the alert.'));
   }
   if (this.isNew) {
-    console.log(`New alert created: ${this.message}`);
+    logger.info(`New alert created: ${this.message}`);
   }
   next();
 });

@@ -2,6 +2,7 @@ import EmergencyResponse from '../models/EmergencyResponse.js';
 import User from '../models/User.js';
 import Alert from '../models/Alert.js';
 import mongoose from 'mongoose';
+import { emitToMine, emitToAll } from '../utils/socketHandler.js';
 
 // Create Emergency SOS
 export const createEmergency = async (req, res) => {
@@ -57,9 +58,8 @@ export const createEmergency = async (req, res) => {
       createdBy: mineId
     });
 
-    // TODO: Send real-time notifications via WebSocket
-    // TODO: Trigger SMS/Email alerts to emergency contacts
-    // TODO: Alert nearby response teams
+    emitToMine(String(mineId), 'emergency:alert', { emergency, timestamp: new Date() });
+    emitToAll('emergency:admin', { emergency, mineId });
 
     res.status(201).json({
       success: true,

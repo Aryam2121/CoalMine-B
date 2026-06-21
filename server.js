@@ -3,7 +3,6 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import winston from 'winston';
 import morgan from 'morgan';
 import passport from 'passport';
 import session from 'express-session';
@@ -11,6 +10,7 @@ import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
 import rateLimit from 'express-rate-limit';
+import logger from './utils/logger.js';
 
 // Import Routes
 import alertRoutes from './routes/alerts.js';
@@ -38,26 +38,19 @@ import emergencyRoutes from './routes/emergencyRoutes.js';
 import trainingRoutes from './routes/trainingRoutes.js';
 import advancedAnalyticsRoutes from './routes/advancedAnalyticsRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import monitoringRoutes from './routes/monitoringRoutes.js';
+import capaRoutes from './routes/capaRoutes.js';
+import complianceCenterRoutes from './routes/complianceCenterRoutes.js';
+import executiveRoutes from './routes/executiveRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
 import { initializeSocket } from './utils/socketHandler.js';
+import { startComplianceReminderScheduler } from './jobs/complianceReminderJob.js';
 import http from 'http';
 
 const app = express();
 const server = http.createServer(app);
 
-// Set up logging
-const logger = winston.createLogger({
-  level: 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
-  transports: [
-    new winston.transports.Console({ format: winston.format.simple() }),
-    new winston.transports.File({ filename: 'server.log' })
-  ]
-});
-
-// Security Middlewares
+// MongoDB connection
 app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
@@ -128,6 +121,9 @@ connectDB();
 // Initialize WebSocket
 initializeSocket(server);
 
+// Compliance reminder scheduler (hourly)
+startComplianceReminderScheduler(60 * 60 * 1000);
+
 // Initialize session and passport
 app.use(session({
   secret: process.env.SESSION_SECRET,
@@ -176,6 +172,14 @@ app.use('/api', emergencyRoutes);
 app.use('/api', trainingRoutes);
 app.use('/api', advancedAnalyticsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api', monitoringRoutes);
+app.use('/api', capaRoutes);
+app.use('/api', complianceCenterRoutes);
+app.use('/api', executiveRoutes);
+app.use('/api', chatRoutes);
+
+// Static uploads for safety check images
+app.use('/uploads', express.static('uploads'));
 
 // Global error handling middleware
 app.use((err, req, res, next) => {

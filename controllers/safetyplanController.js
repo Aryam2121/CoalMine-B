@@ -17,9 +17,6 @@ const getAllSafetyPlans = async (req, res) => {
 // Create a new safety plan with file upload
 const createSafetyPlan = async (req, res) => {
     try {
-      console.log("Request received:", req.body);
-      console.log("Uploaded file:", req.file);
-  
       const { hazardDetails, riskLevel, mitigationMeasures, status, createdBy } = req.body;
   
       if (!hazardDetails || !riskLevel || !mitigationMeasures || !createdBy) {

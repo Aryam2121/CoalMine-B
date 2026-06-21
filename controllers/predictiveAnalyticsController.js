@@ -3,6 +3,14 @@ import IncidentPrediction from '../models/IncidentPrediction.js';
 import Alert from '../models/Alert.js';
 import Maintenance from '../models/Maintenance.js';
 import mongoose from 'mongoose';
+import {
+  computeRiskScore,
+  riskLevelFromScore,
+  computeConfidence,
+  computeMaintenanceRiskFactors,
+  daysSinceLastIncident,
+  computeEquipmentRiskList,
+} from '../utils/riskScoring.js';
 
 // AI-Powered Predictive Analytics Controller
 
@@ -22,28 +30,32 @@ export const generateSafetyPrediction = async (req, res) => {
     });
 
     const maintenanceTasks = await Maintenance.find({
-      date: { $gte: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000) }
+      mineId,
+      date: { $gte: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000) },
     });
+
+    const maintFactors = computeMaintenanceRiskFactors(maintenanceTasks, mineId);
 
     // Calculate risk factors
     const criticalAlerts = recentAlerts.filter(a => a.type === 'critical').length;
     const unresolvedAlerts = recentAlerts.filter(a => !a.resolved).length;
-    const overdueMaintenanceTasks = maintenanceTasks.filter(
-      m => m.status !== 'completed' && m.date < new Date()
+    const overdueMaintenanceTasks = maintFactors.overdueCount;
+
+    const failureFrequency = recentAlerts.filter(
+      (a) => a.type === 'critical' && (a.message || '').toLowerCase().includes('equipment')
     ).length;
 
-    // Simple ML-like scoring algorithm (can be replaced with actual ML model)
-    const riskScore = Math.min(100, 
-      (criticalAlerts * 15) + 
-      (unresolvedAlerts * 10) + 
-      (overdueMaintenanceTasks * 12) +
-      Math.floor(Math.random() * 20) // Simulated variance
-    );
+    const riskScore = computeRiskScore({
+      criticalAlerts,
+      unresolvedAlerts,
+      overdueMaintenance: overdueMaintenanceTasks,
+      openMaintenance: maintFactors.openCount,
+      avgEquipmentAgeYears: maintFactors.avgEquipmentAgeYears,
+      failureFrequency,
+      emergencyMaintenance: maintFactors.emergencyCount,
+    });
 
-    let riskLevel = 'low';
-    if (riskScore >= 75) riskLevel = 'critical';
-    else if (riskScore >= 50) riskLevel = 'high';
-    else if (riskScore >= 25) riskLevel = 'medium';
+    let riskLevel = riskLevelFromScore(riskScore);
 
     // Generate predictions
     const predictedIncidents = [];
@@ -107,34 +119,34 @@ export const generateSafetyPrediction = async (req, res) => {
       potentialRiskReduction: 20
     });
 
-    // Create prediction record
+    const daysWithout = daysSinceLastIncident(recentAlerts);
+
     const prediction = new PredictiveAnalytics({
       mineId,
       riskScore,
       riskLevel,
       predictedIncidents,
       factors: {
-        weatherConditions: {
-          temperature: 25 + Math.random() * 10,
-          humidity: 60 + Math.random() * 20,
-          rainfall: Math.random() * 50,
-          windSpeed: 10 + Math.random() * 15
-        },
+        weatherConditions: null,
         operationalFactors: {
-          hoursOperated: 168,
+          hoursOperated: maintFactors.openCount * 8,
           maintenanceOverdue: overdueMaintenanceTasks,
-          staffFatigue: Math.floor(Math.random() * 100),
-          equipmentAge: 5 + Math.random() * 10
+          staffFatigue: Math.min(100, unresolvedAlerts * 5),
+          equipmentAge: maintFactors.avgEquipmentAgeYears,
         },
         historicalData: {
           pastIncidents: recentAlerts.length,
-          daysWithoutIncident: Math.floor(Math.random() * 30),
-          averageResponseTime: 15 + Math.random() * 30
-        }
+          daysWithoutIncident: daysWithout,
+          averageResponseTime: null,
+        },
       },
       recommendations,
-      mlModelVersion: '1.0.0',
-      confidence: 75 + Math.floor(Math.random() * 20)
+      mlModelVersion: '2.0.0-deterministic',
+      confidence: computeConfidence({
+        dataPoints: recentAlerts.length + maintenanceTasks.length,
+        overdueMaintenance: overdueMaintenanceTasks,
+        unresolvedAlerts,
+      }),
     });
 
     await prediction.save();
@@ -257,9 +269,21 @@ export const generateIncidentPrediction = async (req, res) => {
       .slice(0, 3)
       .map(d => d[0]);
 
-    const incidentProbability = Math.min(95, 
-      (historicalAlerts.filter(a => a.type === 'critical').length / Math.max(historicalAlerts.length, 1)) * 100
+    const incidentProbability = Math.min(
+      95,
+      Math.round(
+        (historicalAlerts.filter((a) => a.type === 'critical').length /
+          Math.max(historicalAlerts.length, 1)) *
+          100
+      )
     );
+
+    const confidenceLevel = Math.min(
+      95,
+      Math.max(50, 55 + Math.min(historicalAlerts.length, 20) * 2)
+    );
+
+    const lastIncidentDays = daysSinceLastIncident(historicalAlerts);
 
     const prediction = new IncidentPrediction({
       mineId,
@@ -283,15 +307,15 @@ export const generateIncidentPrediction = async (req, res) => {
       },
       mlPredictions: {
         incidentProbability,
-        confidenceLevel: 70 + Math.floor(Math.random() * 20),
+        confidenceLevel,
         predictedType: incidentProbability > 50 ? 'equipment_failure' : 'minor_incident',
         predictedSeverity: incidentProbability > 70 ? 'high' : 'medium',
-        contributingFactors: ['Equipment age', 'Weather conditions', 'Peak operational hours']
+        contributingFactors: ['Equipment age', 'Maintenance backlog', 'Peak operational hours']
       },
       historicalComparison: {
         similarIncidentsPast: historicalAlerts.length,
-        averageTimeBetweenIncidents: 7,
-        daysSinceLastIncident: Math.floor(Math.random() * 14),
+        averageTimeBetweenIncidents: highRiskHours.length ? 7 : null,
+        daysSinceLastIncident: lastIncidentDays,
         trendDirection: incidentProbability < 30 ? 'improving' : incidentProbability > 60 ? 'declining' : 'stable'
       }
     });
@@ -319,7 +343,7 @@ export const getDashboardAnalytics = async (req, res) => {
   try {
     const { mineId } = req.params;
 
-    const [latestPrediction, recentAlerts, maintenanceStatus] = await Promise.all([
+    const [latestPrediction, recentAlerts, maintenanceStatus, maintenanceTasks] = await Promise.all([
       PredictiveAnalytics.findOne({ mineId }).sort({ analysisDate: -1 }),
       Alert.find({ createdBy: mineId, resolved: false }).limit(5),
       Maintenance.aggregate([
@@ -329,8 +353,15 @@ export const getDashboardAnalytics = async (req, res) => {
             count: { $sum: 1 }
           }
         }
-      ])
+      ]),
+      Maintenance.find({ mineId }),
     ]);
+
+    const allAlerts = await Alert.find({
+      createdBy: mineId,
+      timestamp: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+    });
+    const equipmentRisk = computeEquipmentRiskList(maintenanceTasks, allAlerts, mineId);
 
     res.json({
       success: true,
@@ -343,7 +374,9 @@ export const getDashboardAnalytics = async (req, res) => {
           return acc;
         }, {}),
         lastAnalysis: latestPrediction?.analysisDate,
-        recommendations: latestPrediction?.recommendations?.slice(0, 3) || []
+        recommendations: latestPrediction?.recommendations?.slice(0, 3) || [],
+        equipmentRisk: equipmentRisk.slice(0, 12),
+        riskFactors: latestPrediction?.factors || null,
       }
     });
 

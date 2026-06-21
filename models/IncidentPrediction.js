@@ -7,12 +7,10 @@ const incidentPredictionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Mine',
       required: true,
-      index: true,
     },
     predictionDate: {
       type: Date,
       default: Date.now,
-      index: true,
     },
     predictionWindow: {
       start: Date,

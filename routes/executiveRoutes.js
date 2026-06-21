@@ -1,11 +1,11 @@
 import express from 'express';
-import { sendNotification } from '../controllers/NotificationController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { requirePermission } from '../middleware/authorize.js';
 import { PERMISSIONS } from '../config/roles.js';
+import executiveController from '../controllers/executiveController.js';
 
 const router = express.Router();
 
-router.post('/send-notification', protect, requirePermission(PERMISSIONS.NOTIFICATION_SEND), sendNotification);
+router.get('/executive/summary', protect, requirePermission(PERMISSIONS.ANALYTICS_VIEW), executiveController.getExecutiveSummary);
 
 export default router;

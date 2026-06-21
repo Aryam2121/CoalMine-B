@@ -1,22 +1,15 @@
 import express from 'express';
 import predictiveAnalyticsController from '../controllers/predictiveAnalyticsController.js';
-import { protect, isAdmin } from '../middleware/authMiddleware.js';
+import { protect } from '../middleware/authMiddleware.js';
+import { requirePermission } from '../middleware/authorize.js';
+import { PERMISSIONS } from '../config/roles.js';
 
 const router = express.Router();
 
-// Generate safety prediction for a mine
-router.post('/mines/:mineId/predict', protect, predictiveAnalyticsController.generateSafetyPrediction);
-
-// Get all predictions for a mine
+router.post('/mines/:mineId/predict', protect, requirePermission(PERMISSIONS.ANALYTICS_VIEW), predictiveAnalyticsController.generateSafetyPrediction);
 router.get('/mines/:mineId/predictions', protect, predictiveAnalyticsController.getPredictions);
-
-// Get high-risk mines
 router.get('/high-risk-mines', protect, predictiveAnalyticsController.getHighRiskMines);
-
-// Generate incident prediction
-router.post('/mines/:mineId/incident-prediction', protect, predictiveAnalyticsController.generateIncidentPrediction);
-
-// Get dashboard analytics summary
+router.post('/mines/:mineId/incident-prediction', protect, requirePermission(PERMISSIONS.ANALYTICS_VIEW), predictiveAnalyticsController.generateIncidentPrediction);
 router.get('/mines/:mineId/analytics', protect, predictiveAnalyticsController.getDashboardAnalytics);
 
 export default router;

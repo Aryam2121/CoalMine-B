@@ -6,6 +6,6 @@ import { requirePermission } from '../middleware/authorize.js';
 import { PERMISSIONS } from '../config/roles.js';
 
 router.get('/getAudit', protect, requirePermission(PERMISSIONS.AUDIT_READ), getAuditLogs);
-router.post('/addAudit', protect, createAuditLog);
+router.post('/addAudit', protect, requirePermission(PERMISSIONS.AUDIT_READ), createAuditLog);
 
 export default router;

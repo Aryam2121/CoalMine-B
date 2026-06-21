@@ -14,9 +14,6 @@ const getReports = async (req, res) => {
       query.status = status;
     }
 
-    console.log("Query Filters:", query);
-    console.log(`Fetching reports with page: ${page}, limit: ${limit}`);
-
     const reports = await CompilanceReport.find(query)
       .sort({ date: -1 })
       .skip((page - 1) * limit)
@@ -24,7 +21,6 @@ const getReports = async (req, res) => {
 
     const total = await CompilanceReport.countDocuments(query);
 
-    console.log("Reports fetched:", reports.length);
     res.json({ total, page: parseInt(page), reports });
   } catch (error) {
     console.error("Error in getReports:", error);
@@ -47,11 +43,6 @@ const createReport = async (req, res) => {
 const updateReport = async (req, res) => {
     const { id } = req.params;
   
-    // Log the incoming data and the ID
-    console.log("Request body:", req.body);
-    console.log("Report ID:", id);
-  
-    // Check if the ID is valid
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ error: "Invalid report ID" });
     }

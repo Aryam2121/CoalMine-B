@@ -152,9 +152,6 @@ const getAllShiftLogs = async (req, res) => {
 // Create a new shift log
 const createShiftLog = async (req, res) => {
   try {
-    console.log("Received Payload:", req.body);
-    console.log("Received File:", req.file);
-
     const { shiftDetails, shiftStartTime, shiftEndTime, status, notes } = req.body;
 
     if (!shiftDetails || !shiftStartTime || !shiftEndTime) {

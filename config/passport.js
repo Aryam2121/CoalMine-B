@@ -2,7 +2,8 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import dotenv from "dotenv";
 dotenv.config();
-import User from "../models/User.js"; // Adjust path as per your project structure
+import logger from "../utils/logger.js";
+import User from "../models/User.js";
 
 // Only configure Google OAuth if credentials are provided
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
@@ -37,7 +38,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     )
   );
 } else {
-  console.log('Google OAuth not configured - skipping Google Strategy');
+  logger.info('Google OAuth not configured - skipping Google Strategy');
 }
 
 passport.serializeUser((user, done) => {

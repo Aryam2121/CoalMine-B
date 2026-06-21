@@ -1,34 +1,19 @@
 import express from 'express';
 import emergencyResponseController from '../controllers/emergencyResponseController.js';
 import { protect } from '../middleware/authMiddleware.js';
+import { requirePermission } from '../middleware/authorize.js';
+import { PERMISSIONS } from '../config/roles.js';
 
 const router = express.Router();
 
-// Create emergency (SOS)
-router.post('/emergency', protect, emergencyResponseController.createEmergency);
-
-// Get all emergencies with filtering
+router.post('/emergency', protect, requirePermission(PERMISSIONS.EMERGENCY_SOS), emergencyResponseController.createEmergency);
 router.get('/emergencies', protect, emergencyResponseController.getAllEmergencies);
-
-// Get active emergencies
 router.get('/emergencies/active', protect, emergencyResponseController.getActiveEmergencies);
-
-// Get emergency by ID
 router.get('/emergency/:id', protect, emergencyResponseController.getEmergencyById);
-
-// Update emergency status
-router.patch('/emergency/:id/status', protect, emergencyResponseController.updateEmergencyStatus);
-
-// Assign response team
-router.post('/emergency/:id/assign-team', protect, emergencyResponseController.assignResponseTeam);
-
-// Add communication log
-router.post('/emergency/:id/communication', protect, emergencyResponseController.addCommunicationLog);
-
-// Initiate evacuation
-router.post('/emergency/:id/evacuate', protect, emergencyResponseController.initiateEvacuation);
-
-// Submit post-incident report
-router.post('/emergency/:id/report', protect, emergencyResponseController.submitPostIncidentReport);
+router.patch('/emergency/:id/status', protect, requirePermission(PERMISSIONS.EMERGENCY_MANAGE), emergencyResponseController.updateEmergencyStatus);
+router.post('/emergency/:id/assign-team', protect, requirePermission(PERMISSIONS.EMERGENCY_MANAGE), emergencyResponseController.assignResponseTeam);
+router.post('/emergency/:id/communication', protect, requirePermission(PERMISSIONS.EMERGENCY_MANAGE), emergencyResponseController.addCommunicationLog);
+router.post('/emergency/:id/evacuate', protect, requirePermission(PERMISSIONS.EMERGENCY_MANAGE), emergencyResponseController.initiateEvacuation);
+router.post('/emergency/:id/report', protect, requirePermission(PERMISSIONS.EMERGENCY_MANAGE), emergencyResponseController.submitPostIncidentReport);
 
 export default router;

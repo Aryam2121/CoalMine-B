@@ -3,6 +3,10 @@ import jwt from 'jsonwebtoken';
 import RealTimeMonitoring from '../models/RealTimeMonitoring.js';
 import EmergencyResponse from '../models/EmergencyResponse.js';
 import Alert from '../models/Alert.js';
+import ChatMessage from '../models/ChatMessage.js';
+import User from '../models/User.js';
+import { upsertPersonnelLocation } from '../services/monitoringService.js';
+import logger from './logger.js';
 import {
   initSocketAuthState,
   authorizeMineJoin,
@@ -52,7 +56,7 @@ export const initializeSocket = (server) => {
 
   io.on('connection', (socket) => {
     initSocketAuthState(socket);
-    console.log(`User connected: ${socket.userId}`);
+    logger.info(`User connected: ${socket.userId}`);
 
     // Join mine-specific room
     socket.on('join:mine', async (mineId, ack) => {
@@ -66,7 +70,7 @@ export const initializeSocket = (server) => {
 
         socket.join(`mine:${auth.mineId}`);
         socket.allowedMines.add(auth.mineId);
-        console.log(`User ${socket.userId} joined mine room: ${auth.mineId}`);
+        logger.info(`User ${socket.userId} joined mine room: ${auth.mineId}`);
         if (typeof ack === 'function') ack({ ok: true, mineId: auth.mineId });
       } catch (error) {
         console.error('Error joining mine room:', error);
@@ -102,27 +106,7 @@ export const initializeSocket = (server) => {
           return;
         }
 
-        let monitoring = await RealTimeMonitoring.findOne({ mineId: mineAuth.mineId }).sort({
-          timestamp: -1,
-        });
-
-        if (!monitoring) {
-          monitoring = new RealTimeMonitoring({ mineId: mineAuth.mineId, activePersonnel: [] });
-        }
-
-        const personIndex = monitoring.activePersonnel.findIndex(
-          (p) => p.userId.toString() === String(socket.userId)
-        );
-
-        if (personIndex >= 0) {
-          monitoring.activePersonnel[personIndex].location = location;
-          monitoring.activePersonnel[personIndex].lastUpdate = new Date();
-          if (vitalSigns) {
-            monitoring.activePersonnel[personIndex].vitalSigns = vitalSigns;
-          }
-        }
-
-        await monitoring.save();
+        await upsertPersonnelLocation(mineAuth.mineId, socket.userId, location, vitalSigns);
 
         io.to(`mine:${mineAuth.mineId}`).emit('location:updated', {
           userId: socket.userId,
@@ -318,11 +302,22 @@ export const initializeSocket = (server) => {
           return;
         }
 
-        io.to(`mine:${mineAuth.mineId}`).emit('chat:new', {
-          from: socket.userId,
-          message,
+        const user = await User.findById(socket.userId).select('name role');
+        const saved = await ChatMessage.create({
+          mineId: mineAuth.mineId,
           channel: channel || 'general',
-          timestamp: new Date(),
+          userId: socket.userId,
+          userName: user?.name || 'Unknown',
+          message,
+        });
+
+        io.to(`mine:${mineAuth.mineId}`).emit('chat:new', {
+          _id: saved._id,
+          from: socket.userId,
+          userName: saved.userName,
+          message,
+          channel: saved.channel,
+          timestamp: saved.createdAt,
         });
       } catch (error) {
         console.error('Error sending chat message:', error);
@@ -436,7 +431,7 @@ export const initializeSocket = (server) => {
 
     // Disconnect
     socket.on('disconnect', () => {
-      console.log(`User disconnected: ${socket.userId}`);
+      logger.info(`User disconnected: ${socket.userId}`);
     });
   });
 

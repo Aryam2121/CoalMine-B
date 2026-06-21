@@ -1,4 +1,4 @@
-import sgMail from '@sendgrid/mail';
+import logger from '../utils/logger.js';
 import otpGenerator from 'otp-generator';
 import User from '../models/User.js'; // assuming you're using Mongoose
 import dotenv from "dotenv";
@@ -22,7 +22,7 @@ export const sendOtpEmail = async (email, otp) => {
 
   try {
     await sgMail.send(msg);
-    console.log('OTP email sent');
+    logger.info('OTP email sent');
   } catch (error) {
     console.error('Error sending OTP email:', error);
   }

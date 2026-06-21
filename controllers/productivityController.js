@@ -32,8 +32,6 @@ const getProductivityData = async (req, res) => {
 // Add a New Productivity Record
 const addProductivityRecord = async (req, res) => {
   try {
-    console.log(req.body); // Debugging ke liye
-
     let { date, value, description } = req.body;
 
     if (!date || !value) {

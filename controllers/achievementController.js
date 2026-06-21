@@ -36,15 +36,7 @@ const updateAchievement = async (req, res) => {
     const { id } = req.params;
     const { progressKey, progress } = req.body;
 
-    console.log("📌 Incoming request:", { id, progressKey, progress });
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, error: "Invalid achievement ID" });
-    }
-
-    const achievement = await Achievement.findById(id);
     if (!achievement) {
-      console.log("🚨 Achievement Not Found");
       return res.status(404).json({ success: false, error: "Achievement not found" });
     }
 
@@ -54,7 +46,6 @@ const updateAchievement = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    console.log("✅ Achievement Updated Successfully:", updatedAchievement);
     res.status(200).json({ success: true, data: updatedAchievement });
 
   } catch (error) {

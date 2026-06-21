@@ -7,7 +7,6 @@ const maintenanceSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Mine',
       required: true,
-      index: true
     },
     task: {
       type: String,
@@ -24,7 +23,6 @@ const maintenanceSchema = new mongoose.Schema(
       type: Date,
       required: [true, 'Date is required'],
       default: Date.now,
-      index: true
     },
     dueDate: {
       type: Date,
