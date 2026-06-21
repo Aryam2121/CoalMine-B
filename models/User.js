@@ -24,6 +24,7 @@ const userSchema = new mongoose.Schema(
         return !this.googleId; // Password required only if Google ID is absent
       },
       minlength: 6,
+      select: false,
     },
     googleId: {
       type: String,
@@ -32,10 +33,12 @@ const userSchema = new mongoose.Schema(
     otp: {
       type: String,
       default: null,
+      select: false,
     },
     otpExpiry: {
       type: Date,
       default: null,
+      select: false,
     },
     role: {
       type: String,
@@ -45,6 +48,22 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    toJSON: {
+      transform: (_doc, ret) => {
+        delete ret.password;
+        delete ret.otp;
+        delete ret.otpExpiry;
+        return ret;
+      },
+    },
+    toObject: {
+      transform: (_doc, ret) => {
+        delete ret.password;
+        delete ret.otp;
+        delete ret.otpExpiry;
+        return ret;
+      },
+    },
   }
 );
 

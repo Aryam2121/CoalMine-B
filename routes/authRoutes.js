@@ -109,7 +109,7 @@ router.post("/signup", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { email, password, otp } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('+password +otp +otpExpiry');
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (otp) {
@@ -164,7 +164,7 @@ router.post("/send-otp", async (req, res) => {
 router.post("/verify-otp", async (req, res) => {
   try {
     const { email, otp } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('+otp +otpExpiry');
     if (!user) return res.status(404).json({ error: "User not found" });
 
     await verifyOtp(user, otp);
