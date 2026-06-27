@@ -10,6 +10,7 @@ router.post('/mines/:mineId/predict', protect, requirePermission(PERMISSIONS.ANA
 router.get('/mines/:mineId/predictions', protect, predictiveAnalyticsController.getPredictions);
 router.get('/high-risk-mines', protect, predictiveAnalyticsController.getHighRiskMines);
 router.post('/mines/:mineId/incident-prediction', protect, requirePermission(PERMISSIONS.ANALYTICS_VIEW), predictiveAnalyticsController.generateIncidentPrediction);
+router.get('/mines/:mineId/incident-predictions', protect, requirePermission(PERMISSIONS.ANALYTICS_VIEW), predictiveAnalyticsController.getIncidentPredictions);
 router.get('/mines/:mineId/analytics', protect, predictiveAnalyticsController.getDashboardAnalytics);
 
 export default router;

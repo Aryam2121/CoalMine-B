@@ -29,6 +29,13 @@ import SafetyReport from '../models/SafetyReport.js';
 import AuditLog from '../models/Audit.js';
 import Achievement from '../models/Achievement.js';
 import Attendance from '../models/Attendance.js';
+import WorkPermit from '../models/WorkPermit.js';
+import Equipment from '../models/Equipment.js';
+import HazardZone from '../models/HazardZone.js';
+import ContractorVisitor from '../models/ContractorVisitor.js';
+import NearMissReport from '../models/NearMissReport.js';
+import SafetyDrill from '../models/SafetyDrill.js';
+import ChatMessage from '../models/ChatMessage.js';
 
 const FRESH = process.argv.includes('--fresh');
 const PASSWORD = 'Password123!';
@@ -125,6 +132,7 @@ async function clearCollections() {
   const models = [
     User, Mine, CoalMine, Location, Alert, Maintenance, Resource, Productivity,
     ShiftLog, SafetyPlan, CompilanceReport, SafetyReport, AuditLog, Achievement, Attendance,
+    WorkPermit, Equipment, HazardZone, ContractorVisitor, NearMissReport, SafetyDrill, ChatMessage,
   ];
   for (const M of models) {
     await M.deleteMany({});
@@ -384,6 +392,14 @@ async function seed() {
     };
   });
   await batchInsert(Resource, resources, 'Resources');
+
+  console.log('Safety features (permits, equipment, zones, etc.)...');
+  const { spawnSync } = await import('child_process');
+  spawnSync(process.execPath, ['scripts/seed-safety-features.js', '--force'], {
+    cwd: path.join(__dirname, '..'),
+    stdio: 'inherit',
+    env: process.env,
+  });
 
   await Achievement.insertMany([
     { name: '7-Day Safety Streak', description: 'No recordable incidents for 7 shifts', target: 7, progressKey: 'safetyStreak', milestone: 'Bronze' },

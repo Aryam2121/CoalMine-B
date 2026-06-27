@@ -13,7 +13,6 @@ router.get('/emergency/:id', protect, emergencyResponseController.getEmergencyBy
 router.patch('/emergency/:id/status', protect, requirePermission(PERMISSIONS.EMERGENCY_MANAGE), emergencyResponseController.updateEmergencyStatus);
 router.post('/emergency/:id/assign-team', protect, requirePermission(PERMISSIONS.EMERGENCY_MANAGE), emergencyResponseController.assignResponseTeam);
 router.post('/emergency/:id/communication', protect, requirePermission(PERMISSIONS.EMERGENCY_MANAGE), emergencyResponseController.addCommunicationLog);
-router.post('/emergency/:id/evacuate', protect, requirePermission(PERMISSIONS.EMERGENCY_MANAGE), emergencyResponseController.initiateEvacuation);
 router.post('/emergency/:id/report', protect, requirePermission(PERMISSIONS.EMERGENCY_MANAGE), emergencyResponseController.submitPostIncidentReport);
 
 export default router;

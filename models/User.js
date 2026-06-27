@@ -45,6 +45,7 @@ const userSchema = new mongoose.Schema(
       enum: ['worker', 'Inspector', 'Super admin', 'Mine admin','Safety Manager' ,'Shift Incharge'],
       default: 'worker',
     },
+    fcmTokens: [{ type: String }],
   },
   {
     timestamps: true,

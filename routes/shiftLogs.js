@@ -14,7 +14,7 @@ const router = express.Router();
 
 router.get('/getAllLogs', protect, getAllShiftLogs);
 router.post('/createLogs', protect, requirePermission(PERMISSIONS.SHIFT_LOG_CREATE), upload.single('file'), createShiftLog);
-router.put('/updateLog/:id', protect, requireManager, updateShiftLog);
+router.put('/updateLog/:id', protect, requirePermission(PERMISSIONS.SHIFT_LOG_CREATE), updateShiftLog);
 router.delete('/deleteLog/:id', protect, requireManager, deleteShiftLog);
 
 export default router;

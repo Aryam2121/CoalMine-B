@@ -338,6 +338,19 @@ export const generateIncidentPrediction = async (req, res) => {
   }
 };
 
+// Get incident predictions for a mine
+export const getIncidentPredictions = async (req, res) => {
+  try {
+    const { mineId } = req.params;
+    const predictions = await IncidentPrediction.find({ mineId })
+      .sort({ predictionDate: -1 })
+      .limit(20);
+    res.json({ success: true, predictions });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // Get dashboard analytics summary
 export const getDashboardAnalytics = async (req, res) => {
   try {
@@ -394,5 +407,6 @@ export default {
   getPredictions,
   getHighRiskMines,
   generateIncidentPrediction,
+  getIncidentPredictions,
   getDashboardAnalytics
 };

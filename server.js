@@ -44,7 +44,9 @@ import complianceCenterRoutes from './routes/complianceCenterRoutes.js';
 import executiveRoutes from './routes/executiveRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import { initializeSocket } from './utils/socketHandler.js';
+import safetyFeaturesRoutes from './routes/safetyFeaturesRoutes.js';
 import { startComplianceReminderScheduler } from './jobs/complianceReminderJob.js';
+import { startRecurringMaintenanceScheduler } from './jobs/recurringMaintenanceJob.js';
 import http from 'http';
 
 const app = express();
@@ -123,6 +125,7 @@ initializeSocket(server);
 
 // Compliance reminder scheduler (hourly)
 startComplianceReminderScheduler(60 * 60 * 1000);
+startRecurringMaintenanceScheduler(60 * 60 * 1000);
 
 // Initialize session and passport
 app.use(session({
@@ -177,6 +180,7 @@ app.use('/api', capaRoutes);
 app.use('/api', complianceCenterRoutes);
 app.use('/api', executiveRoutes);
 app.use('/api', chatRoutes);
+app.use('/api', safetyFeaturesRoutes);
 
 // Static uploads for safety check images
 app.use('/uploads', express.static('uploads'));

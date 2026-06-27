@@ -11,7 +11,13 @@
     "seed:fresh": "node scripts/seed.js --fresh",
     "seed:large": "node scripts/seed.js --fresh --count=2000",
     "seed:xlarge": "node scripts/seed.js --fresh --count=5000",
-    "test:api": "node scripts/api-smoke-test.mjs"
+    "seed:safety": "node scripts/seed-safety-features.js",
+    "seed:safety:fresh": "node scripts/seed-safety-features.js --force",
+    "seed:ops": "node scripts/seed-operations-data.js",
+    "seed:ops:fresh": "node scripts/seed-operations-data.js --force",
+    "seed:all": "node scripts/seed-safety-features.js && node scripts/seed-operations-data.js",
+    "test:api": "node scripts/api-smoke-test.mjs",
+    "test:roles": "node scripts/role-audit.mjs"
   },
   "author": "",
   "license": "ISC",

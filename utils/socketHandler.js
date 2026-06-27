@@ -6,6 +6,9 @@ import Alert from '../models/Alert.js';
 import ChatMessage from '../models/ChatMessage.js';
 import User from '../models/User.js';
 import { upsertPersonnelLocation } from '../services/monitoringService.js';
+import HazardZone from '../models/HazardZone.js';
+import { checkGeofenceViolations } from '../utils/geofenceUtils.js';
+import { notifyGasDanger } from '../services/pushNotificationService.js';
 import logger from './logger.js';
 import {
   initSocketAuthState,
@@ -113,6 +116,24 @@ export const initializeSocket = (server) => {
           location,
           timestamp: new Date(),
         });
+
+        if (location?.latitude && location?.longitude) {
+          const zones = await HazardZone.find({ mineId: mineAuth.mineId, active: true });
+          const violations = checkGeofenceViolations(
+            location.latitude,
+            location.longitude,
+            zones,
+            socket.userRole
+          );
+          if (violations.length) {
+            io.to(`mine:${mineAuth.mineId}`).emit('geofence:violation', {
+              userId: socket.userId,
+              violations,
+              location,
+              timestamp: new Date(),
+            });
+          }
+        }
       } catch (error) {
         console.error('Error updating location:', error);
         deny(socket, 'location:update:error', 'Failed to update location');
@@ -373,6 +394,7 @@ export const initializeSocket = (server) => {
                 gasLevels: conditions.gasLevels,
                 message: 'Evacuation may be required',
               });
+              notifyGasDanger(mineAuth.mineId, `CH4: ${methane}%, CO: ${carbonMonoxide}ppm`).catch(() => {});
             }
           }
         }

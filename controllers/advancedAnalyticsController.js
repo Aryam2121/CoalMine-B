@@ -5,7 +5,12 @@ import Maintenance from '../models/Maintenance.js';
 import Resource from '../models/Resource.js';
 import Attendance from '../models/Attendance.js';
 import User from '../models/User.js';
-import mongoose from 'mongoose';
+import Equipment from '../models/Equipment.js';
+import NearMissReport from '../models/NearMissReport.js';
+import Productivity from '../models/Productivity.js';
+import { Training } from '../models/Training.js';
+import ComplianceRecord from '../models/ComplianceRecord.js';
+import EmergencyResponse from '../models/EmergencyResponse.js';
 
 // Generate comprehensive analytics report
 export const generateAnalyticsReport = async (req, res) => {
@@ -18,55 +23,136 @@ export const generateAnalyticsReport = async (req, res) => {
       end: endDate ? new Date(endDate) : new Date()
     };
 
+    const periodMs = period.end - period.start;
+    const prevPeriod = {
+      start: new Date(period.start.getTime() - periodMs),
+      end: new Date(period.start.getTime()),
+    };
+
     // Fetch all required data in parallel
-    const [alerts, maintenance, resources, attendance, users, predictions] = await Promise.all([
+    const [
+      alerts,
+      prevAlerts,
+      maintenance,
+      resources,
+      attendance,
+      users,
+      predictions,
+      equipment,
+      nearMisses,
+      productivity,
+      training,
+      compliance,
+      prevProductivity,
+    ] = await Promise.all([
       Alert.find({
         createdBy: mineId,
-        timestamp: { $gte: period.start, $lte: period.end }
+        timestamp: { $gte: period.start, $lte: period.end },
+      }),
+      Alert.find({
+        createdBy: mineId,
+        timestamp: { $gte: prevPeriod.start, $lte: prevPeriod.end },
       }),
       Maintenance.find({
         mineId,
-        date: { $gte: period.start, $lte: period.end }
+        date: { $gte: period.start, $lte: period.end },
       }),
       Resource.find({ mineId }),
       Attendance.find({
-        date: { $gte: period.start, $lte: period.end }
+        date: { $gte: period.start, $lte: period.end },
       }),
       User.find(),
       PredictiveAnalytics.find({
         mineId,
-        analysisDate: { $gte: period.start, $lte: period.end }
-      })
+        analysisDate: { $gte: period.start, $lte: period.end },
+      }),
+      Equipment.find({ mineId }),
+      NearMissReport.find({ mineId, createdAt: { $gte: period.start, $lte: period.end } }),
+      Productivity.find({ date: { $gte: period.start, $lte: period.end } }),
+      Training.find({ mineId }),
+      ComplianceRecord.find({ mineId }),
+      EmergencyResponse.find({ mineId, createdAt: { $gte: period.start, $lte: period.end } }),
+      Productivity.find({ date: { $gte: prevPeriod.start, $lte: prevPeriod.end } }),
     ]);
 
-    // Calculate productivity metrics
-    const totalProduction = Math.floor(Math.random() * 10000) + 5000; // Simulated
-    const productionTarget = 10000;
-    const achievementRate = (totalProduction / productionTarget * 100).toFixed(2);
+    const sumProductivity = (records) =>
+      records.reduce((sum, r) => {
+        const vals = Array.isArray(r.value) ? r.value : [r.value];
+        return sum + vals.reduce((s, n) => s + (Number(n) || 0), 0);
+      }, 0);
+
+    const totalProduction = Math.round(sumProductivity(productivity));
+    const prevProduction = Math.round(sumProductivity(prevProductivity));
+    const productionTarget = Math.max(totalProduction, prevProduction, 1);
+    const achievementRate = ((totalProduction / productionTarget) * 100).toFixed(2);
+    const productionGrowth =
+      prevProduction > 0
+        ? Math.round(((totalProduction - prevProduction) / prevProduction) * 100)
+        : 0;
 
     // Calculate safety metrics
-    const incidentCount = alerts.filter(a => a.type === 'critical').length;
-    const nearMissCount = alerts.filter(a => a.type === 'warning').length;
-    const daysInPeriod = Math.ceil((period.end - period.start) / (1000 * 60 * 60 * 24));
+    const incidentCount = alerts.filter((a) => a.type === 'critical').length;
+    const nearMissCount = nearMisses.length;
+    const daysInPeriod = Math.max(1, Math.ceil(periodMs / (1000 * 60 * 60 * 24)));
     const incidentRate = incidentCount > 0 ? (incidentCount / daysInPeriod).toFixed(2) : 0;
-    const safetyScore = Math.max(0, 100 - (incidentCount * 10 + nearMissCount * 5));
+    const safetyScore = Math.max(0, 100 - incidentCount * 10 - nearMissCount * 3);
+
+    const lastEmergency = await EmergencyResponse.findOne({ mineId })
+      .sort({ createdAt: -1 })
+      .select('createdAt');
+    const daysWithoutIncident = lastEmergency
+      ? Math.floor((Date.now() - new Date(lastEmergency.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+      : daysInPeriod;
+
+    const validCompliance = compliance.filter((c) => c.status === 'valid').length;
+    const complianceRate =
+      compliance.length > 0 ? Math.round((validCompliance / compliance.length) * 100) : 100;
+
+    const prevCritical = prevAlerts.filter((a) => a.type === 'critical').length;
+    const safetyTrendPct =
+      prevCritical > 0
+        ? Math.round(((prevCritical - incidentCount) / prevCritical) * 100)
+        : incidentCount === 0
+          ? 0
+          : -100;
 
     // Calculate workforce metrics
     const totalEmployees = users.length;
-    const activeEmployees = attendance.filter(a => a.status === 'Present').length;
-    const attendanceRate = totalEmployees > 0 ? (activeEmployees / totalEmployees * 100).toFixed(2) : 0;
-    const absenteeismRate = (100 - attendanceRate).toFixed(2);
+    const activeEmployees = attendance.filter((a) => a.status === 'Present').length;
+    const attendanceRate = totalEmployees > 0 ? ((activeEmployees / totalEmployees) * 100).toFixed(2) : 0;
+    const absenteeismRate = (100 - Number(attendanceRate)).toFixed(2);
 
-    // Equipment metrics
-    const totalEquipment = 50; // Simulated
-    const operationalEquipment = 42;
-    const underMaintenance = maintenance.filter(m => m.status === 'in-progress').length;
-    const utilization = (operationalEquipment / totalEquipment * 100).toFixed(2);
+    const completedTraining = training.filter((t) => t.status === 'completed' || t.completed).length;
+    const trainingCompletionRate =
+      training.length > 0 ? Math.round((completedTraining / training.length) * 100) : 0;
 
-    // Financial metrics (simulated)
-    const operatingCost = Math.floor(Math.random() * 500000) + 200000;
-    const revenue = Math.floor(Math.random() * 800000) + 400000;
-    const profitMargin = ((revenue - operatingCost) / revenue * 100).toFixed(2);
+    const taskCompletionRate =
+      maintenance.length > 0
+        ? Math.round(
+            (maintenance.filter((m) => m.status === 'completed').length / maintenance.length) * 100
+          )
+        : 0;
+
+    // Equipment metrics from registry
+    const totalEquipment = equipment.length || maintenance.filter((m) => m.equipmentId).length;
+    const operationalEquipment = equipment.filter((e) => e.status === 'operational').length;
+    const underMaintenance = equipment.filter((e) => e.status === 'maintenance').length +
+      maintenance.filter((m) => m.status === 'in-progress').length;
+    const utilization =
+      totalEquipment > 0 ? ((operationalEquipment / totalEquipment) * 100).toFixed(2) : '0';
+
+    const maintenanceCost = maintenance.reduce(
+      (sum, m) => sum + (m.cost?.actual || m.cost?.estimated || 0),
+      0
+    );
+    const downtimeHours = maintenance
+      .filter((m) => ['overdue', 'in-progress'].includes(m.status))
+      .reduce((sum, m) => sum + (m.estimatedDuration || 4), 0);
+
+    // Financial metrics from resources + maintenance
+    const operatingCost = Math.round(maintenanceCost + resources.reduce((s, r) => s + (r.used || 0) * 100, 0));
+    const revenue = Math.round(totalProduction * 120);
+    const profitMargin = revenue > 0 ? (((revenue - operatingCost) / revenue) * 100).toFixed(2) : '0';
 
     // Generate KPIs
     const kpis = [
@@ -133,7 +219,7 @@ export const generateAnalyticsReport = async (req, res) => {
       });
     }
 
-    if (resources.some(r => r.status === 'critical' || r.status === 'depleted')) {
+    if (resources.some(r => (r.used || 0) > 90)) {
       insights.push({
         category: 'resources',
         insight: 'Critical resource shortage detected. Immediate restocking required.',
@@ -156,27 +242,27 @@ export const generateAnalyticsReport = async (req, res) => {
         productionTarget,
         achievementRate: parseFloat(achievementRate),
         trendsAnalysis: {
-          comparedToPreviousPeriod: Math.floor(Math.random() * 20) - 10,
-          growthRate: Math.floor(Math.random() * 15),
-          prediction: totalProduction * 1.1
-        }
+          comparedToPreviousPeriod: productionGrowth,
+          growthRate: Math.max(0, productionGrowth),
+          prediction: Math.round(totalProduction * (1 + productionGrowth / 100)),
+        },
       },
       safety: {
         incidentCount,
         incidentRate: parseFloat(incidentRate),
         nearMissCount,
-        daysWithoutIncident: incidentCount === 0 ? daysInPeriod : 0,
+        daysWithoutIncident,
         safetyScore,
-        complianceRate: 85 + Math.floor(Math.random() * 15),
+        complianceRate,
         byCategory: [
-          { category: 'equipment', count: Math.floor(incidentCount * 0.4), severity: 'medium' },
-          { category: 'gas_leak', count: Math.floor(incidentCount * 0.3), severity: 'high' },
-          { category: 'structural', count: Math.floor(incidentCount * 0.3), severity: 'low' }
+          { category: 'equipment', count: nearMisses.filter((n) => n.category === 'equipment').length, severity: 'medium' },
+          { category: 'gas', count: nearMisses.filter((n) => n.category === 'gas').length, severity: 'high' },
+          { category: 'structural', count: nearMisses.filter((n) => n.category === 'structural').length, severity: 'low' },
         ],
         trends: {
-          improving: incidentCount < 2,
-          percentageChange: -15 + Math.floor(Math.random() * 30)
-        }
+          improving: incidentCount <= prevCritical,
+          percentageChange: safetyTrendPct,
+        },
       },
       workforce: {
         totalEmployees,
@@ -184,20 +270,20 @@ export const generateAnalyticsReport = async (req, res) => {
         attendanceRate: parseFloat(attendanceRate),
         absenteeismRate: parseFloat(absenteeismRate),
         averageExperience: 7.5,
-        trainingCompletionRate: 65 + Math.floor(Math.random() * 30),
+        trainingCompletionRate,
         performanceMetrics: {
-          averageProductivity: 75 + Math.floor(Math.random() * 20),
-          safetyCompliance: 85 + Math.floor(Math.random() * 10),
-          taskCompletionRate: 80 + Math.floor(Math.random() * 15)
-        }
+          averageProductivity: parseFloat(achievementRate),
+          safetyCompliance: complianceRate,
+          taskCompletionRate,
+        },
       },
       equipment: {
         totalEquipment,
         operationalEquipment,
         underMaintenance,
         utilization: parseFloat(utilization),
-        downtime: Math.floor(Math.random() * 100),
-        maintenanceCost: Math.floor(Math.random() * 50000) + 10000
+        downtime: downtimeHours,
+        maintenanceCost,
       },
       financial: {
         operatingCost,
@@ -206,11 +292,11 @@ export const generateAnalyticsReport = async (req, res) => {
         costPerTon: (operatingCost / totalProduction).toFixed(2)
       },
       environmental: {
-        emissionsLevel: 150 + Math.floor(Math.random() * 100),
-        waterUsage: 5000 + Math.floor(Math.random() * 2000),
-        wasteGenerated: 500 + Math.floor(Math.random() * 300),
-        complianceStatus: 'compliant',
-        improvementAreas: ['Water recycling', 'Emission reduction']
+        emissionsLevel: resources.filter((r) => r.type === 'emissions').reduce((s, r) => s + (r.used || 0), 0),
+        waterUsage: resources.filter((r) => r.type === 'water').reduce((s, r) => s + (r.used || 0), 0),
+        wasteGenerated: resources.filter((r) => r.type === 'waste').reduce((s, r) => s + (r.used || 0), 0),
+        complianceStatus: complianceRate >= 80 ? 'compliant' : 'review_required',
+        improvementAreas: complianceRate < 90 ? ['Certificate renewals', 'Inspection scheduling'] : ['Water recycling'],
       },
       kpi: kpis,
       insights,

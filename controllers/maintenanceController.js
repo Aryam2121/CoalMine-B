@@ -42,6 +42,11 @@ const createMaintenance = async (req, res) => {
       status: status || 'pending',
       description,
       priority: priority ? Number(priority) : 3,
+      recurringSchedule: req.body.recurringSchedule,
+      category: req.body.category,
+      equipmentId: req.body.equipmentId,
+      equipmentName: req.body.equipmentName,
+      assignedTo: req.body.assignedTo,
     });
 
     await maintenanceTask.save();
@@ -110,7 +115,7 @@ const updateMaintenance = async (req, res) => {
     if (req.body.category !== undefined) existingTask.category = req.body.category;
     if (req.body.equipmentId !== undefined) existingTask.equipmentId = req.body.equipmentId;
     if (req.body.equipmentName !== undefined) existingTask.equipmentName = req.body.equipmentName;
-    if (req.body.mineId !== undefined) existingTask.mineId = req.body.mineId;
+    if (req.body.recurringSchedule !== undefined) existingTask.recurringSchedule = req.body.recurringSchedule;
 
     const updatedTask = await existingTask.save();
     const populated = await Maintenance.findById(updatedTask._id).populate('assignedTo', 'name role');

@@ -106,6 +106,24 @@ const emergencyResponseSchema = new mongoose.Schema(
       personnelEvacuated: Number,
       personnelRemaining: Number,
       evacuationRoutes: [String],
+      musterPoints: [{
+        name: String,
+        latitude: Number,
+        longitude: Number,
+        radiusMeters: { type: Number, default: 50 },
+      }],
+      musterRoll: [{
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        name: String,
+        status: {
+          type: String,
+          enum: ['missing', 'safe', 'injured', 'evacuated', 'unknown'],
+          default: 'missing',
+        },
+        musterPoint: String,
+        reportedAt: Date,
+        location: { latitude: Number, longitude: Number },
+      }],
     },
     resources: {
       deployed: [

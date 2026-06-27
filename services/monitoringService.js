@@ -1,5 +1,6 @@
 import RealTimeMonitoring from '../models/RealTimeMonitoring.js';
 import Resource from '../models/Resource.js';
+import Equipment from '../models/Equipment.js';
 import Maintenance from '../models/Maintenance.js';
 import User from '../models/User.js';
 
@@ -42,23 +43,58 @@ export const buildEquipmentFromResources = (resources, maintenanceTasks) =>
         .sort((a, b) => new Date(b.date) - new Date(a.date))[0]?.date,
     }));
 
+export const buildEquipmentFromRegistry = (equipmentList, maintenanceTasks) =>
+  equipmentList.map((eq) => {
+    const related = maintenanceTasks.filter(
+      (m) => m.equipmentId === eq.equipmentId || m.equipmentName === eq.name
+    );
+    const overdue = related.some(
+      (m) => !['completed', 'cancelled'].includes(m.status) && new Date(m.dueDate) < new Date()
+    );
+    let status = eq.status || 'operational';
+    if (overdue && status === 'operational') status = 'warning';
+    if (!EQUIPMENT_STATUSES.includes(status)) status = 'operational';
+
+    return {
+      equipmentId: eq.equipmentId,
+      name: eq.name,
+      type: eq.type,
+      status,
+      location: eq.location?.area || '',
+      metrics: {
+        criticality: eq.criticality,
+        failureCount: eq.failureCount || 0,
+        latitude: eq.location?.latitude,
+        longitude: eq.location?.longitude,
+      },
+      alerts: eq.failureCount > 2 ? ['Elevated failure history'] : [],
+      lastMaintenance: eq.lastMaintenance,
+    };
+  });
+
 export async function getOrCreateMonitoringDoc(mineId) {
   let monitoring = await RealTimeMonitoring.findOne({ mineId }).sort({ timestamp: -1 });
   if (monitoring) return monitoring;
 
-  const [resources, maintenanceTasks] = await Promise.all([
+  const [resources, maintenanceTasks, registry] = await Promise.all([
     Resource.find({ mineId }),
     Maintenance.find({ mineId }),
+    Equipment.find({ mineId, status: { $ne: 'decommissioned' } }),
   ]);
+
+  const built =
+    registry.length > 0
+      ? buildEquipmentFromRegistry(registry, maintenanceTasks)
+      : buildEquipmentFromResources(resources, maintenanceTasks);
 
   monitoring = new RealTimeMonitoring({
     mineId,
     activePersonnel: [],
-    equipmentStatus: buildEquipmentFromResources(resources, maintenanceTasks),
+    equipmentStatus: built,
     environmentalConditions: {},
     operationalMetrics: {
       productionRate: 0,
-      activeEquipment: resources.filter((r) => r.type === 'equipment').length,
+      activeEquipment: built.length,
       personnelCount: 0,
     },
   });
@@ -67,11 +103,15 @@ export async function getOrCreateMonitoringDoc(mineId) {
 }
 
 export async function syncEquipmentFromDb(mineId, monitoring) {
-  const [resources, maintenanceTasks] = await Promise.all([
+  const [resources, maintenanceTasks, registry] = await Promise.all([
     Resource.find({ mineId }),
     Maintenance.find({ mineId }),
+    Equipment.find({ mineId, status: { $ne: 'decommissioned' } }),
   ]);
-  const built = buildEquipmentFromResources(resources, maintenanceTasks);
+  const built =
+    registry.length > 0
+      ? buildEquipmentFromRegistry(registry, maintenanceTasks)
+      : buildEquipmentFromResources(resources, maintenanceTasks);
   const byId = Object.fromEntries((monitoring.equipmentStatus || []).map((e) => [e.equipmentId, e]));
 
   monitoring.equipmentStatus = built.map((eq) => {
@@ -172,4 +212,5 @@ export default {
   updateEquipmentStatus,
   updateEnvironmentalConditions,
   buildEquipmentFromResources,
+  buildEquipmentFromRegistry,
 };

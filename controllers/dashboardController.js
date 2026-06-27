@@ -6,6 +6,11 @@ import Productivity from '../models/Productivity.js';
 import Resource from '../models/Resource.js';
 import User from '../models/User.js';
 import ShiftLog from '../models/ShiftLog.js';
+import NearMissReport from '../models/NearMissReport.js';
+import ContractorVisitor from '../models/ContractorVisitor.js';
+import WorkPermit from '../models/WorkPermit.js';
+import EmergencyResponse from '../models/EmergencyResponse.js';
+import SafetyDrill from '../models/SafetyDrill.js';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -75,6 +80,11 @@ export const getDashboardSummary = async (req, res) => {
       productivity,
       resources,
       recentShifts,
+      nearMissOpen,
+      contractorsOnSite,
+      activePermits,
+      activeEvacuations,
+      upcomingDrills,
     ] = await Promise.all([
       Mine.countDocuments(),
       CoalMine.countDocuments({ deleted: { $ne: true } }),
@@ -84,6 +94,18 @@ export const getDashboardSummary = async (req, res) => {
       Productivity.find().sort('-date').limit(30).lean(),
       Resource.find().lean(),
       ShiftLog.find().sort('-createdAt').limit(5).lean(),
+      NearMissReport.countDocuments({ status: { $in: ['submitted', 'reviewing'] } }),
+      ContractorVisitor.countDocuments({ status: 'checked_in' }),
+      WorkPermit.countDocuments({ status: { $in: ['approved', 'active'] } }),
+      EmergencyResponse.countDocuments({
+        status: { $in: ['active', 'responding'] },
+        'evacuationStatus.initiated': true,
+        'evacuationStatus.completedAt': { $exists: false },
+      }),
+      SafetyDrill.countDocuments({
+        status: 'scheduled',
+        scheduledDate: { $gte: new Date(), $lte: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) },
+      }),
     ]);
 
     const openAlerts = alerts.filter((a) => !a.resolved);
@@ -107,6 +129,11 @@ export const getDashboardSummary = async (req, res) => {
         avgProductivity: weekly.data.length
           ? Math.round(weekly.data.reduce((a, b) => a + b, 0) / weekly.data.length)
           : 0,
+        nearMissOpen,
+        contractorsOnSite,
+        activeWorkPermits: activePermits,
+        activeEvacuations,
+        upcomingDrills,
       },
       charts: {
         productivity: {

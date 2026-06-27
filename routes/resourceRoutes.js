@@ -6,7 +6,7 @@ import { PERMISSIONS } from '../config/roles.js';
 
 const router = express.Router();
 
-router.get('/getAllRes', protect, getAllResources);
+router.get('/getAllRes', protect, requirePermission(PERMISSIONS.RESOURCE_MANAGE), getAllResources);
 router.post('/addRes', protect, requirePermission(PERMISSIONS.RESOURCE_MANAGE), createResource);
 router.put('/updateRes/:id', protect, requirePermission(PERMISSIONS.RESOURCE_MANAGE), updateResource);
 router.delete('/deleteRes/:id', protect, requirePermission(PERMISSIONS.RESOURCE_MANAGE), deleteResource);
